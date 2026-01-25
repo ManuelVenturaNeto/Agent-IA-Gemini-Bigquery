@@ -1,5 +1,7 @@
 import logging
 import os
+from typing import Dict
+from google.cloud.bigquery import Table, SchemaField
 from google.cloud import bigquery
 from dotenv import load_dotenv
 
@@ -19,7 +21,18 @@ class BigQueryManager:
         self.bq_client = bigquery.Client(project=self.project_id)
         self.log.debug("BigQuery Client initialized.")
 
+    def get_schema(self, table_id: list) -> Dict[str, str]:
+        """
+        Return a map of column name -> BigQuery type without running SQL.
+        """
+        table: Table = self.bq_client.get_table(table_id)
 
+        schema_map: Dict[str, str] = {}
+        for schema_field in table.schema:
+            schema_field_typed: SchemaField = schema_field
+            schema_map[schema_field_typed.name] = schema_field_typed.field_type
+
+        return schema_map
 
     def execute_query(self, sql_ia: str, user_email: str):
         """

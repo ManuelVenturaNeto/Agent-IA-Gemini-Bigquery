@@ -19,7 +19,13 @@ async def ask_agent(request: ModelRequest):
         logger.info(f"API Request received from {request.email}")
         logger.debug(f"Question: {request.question}")
 
-        return {"response": result}
+        return {
+            'status': 'success',
+            'status_code': 200,
+            'email': request.email,
+            'question': request.question,
+            'response': result
+            }
 
     except Exception as exp:
         logger.error(f"API Error: {exp}")
