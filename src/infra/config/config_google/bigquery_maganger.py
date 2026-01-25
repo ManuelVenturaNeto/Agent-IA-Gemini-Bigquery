@@ -60,7 +60,7 @@ class BigQueryManager:
         try:
             query_job = self.bq_client.query(secure_sql, job_config=job_config)
             results = [dict(row) for row in query_job.result()]
-            self.log.info(f"Query successful. Rows returned: {len(results)}")
+            self.log.info(f"[INFO] [FROM: {user_email}] - Query successful. Rows returned: {len(results)}")
 
             return results
 

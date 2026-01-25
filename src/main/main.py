@@ -32,7 +32,7 @@ class OrchestrateAgent:
                 self.log.warning(f"Security breach attempt detected from {user_email}")
                 return "Security Alert: Invalid or malicious query detected."
 
-            context = self.router.identify_context(question_text, user_email=user_email)
+            context = self.router.identify_context(question_text=question_text, user_email=user_email)
             self.log.info(f"Context identified: {context}")
 
             if context == "TRAVEL":

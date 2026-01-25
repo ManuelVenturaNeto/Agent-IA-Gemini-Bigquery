@@ -36,8 +36,8 @@ class SecurityAgent(BaseAgent):
 
 class RouterAgent(BaseAgent):
 
-    def identify_context(self, query: str, user_email: str) -> str:
-        prompt = f"Classify this query into: TRAVEL, EXPENSE, COMMERCIAL, or SERVICE. Query: {query}. Respond only with the category name."
+    def identify_context(self, question_text: str, user_email: str) -> str:
+        prompt = f"Classify this query into: TRAVEL, EXPENSE, COMMERCIAL, or SERVICE. Question: {question_text}. Respond only with the category name."
 
         response = self.ai_client.models.generate_content(model='gemini-2.0-flash', contents=prompt)
 
@@ -51,12 +51,12 @@ class RouterAgent(BaseAgent):
 
 class TravelAgent(BaseAgent):
 
-    def generate_sql(self, query: str, user_email: str) -> str:
+    def generate_sql(self, question_text: str, user_email: str) -> str:
         prompt = f"""
         You are a BigQuery expert. Table: `{self.project_id}.test_ia.passagens_aereas`.
         Columns: [id, protocolo, company_id, data_ida, data_volta, preco_ida, preco_volta].
         Rules: Return ONLY raw SQL, use SELECT *, no LIMIT.
-        User question: {query}
+        User question: {question_text}
         """
 
         response = self.ai_client.models.generate_content(model='gemini-2.0-flash', contents=prompt)
