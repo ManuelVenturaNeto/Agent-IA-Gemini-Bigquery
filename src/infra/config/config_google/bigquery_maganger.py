@@ -34,27 +34,26 @@ class BigQueryManager:
 
         return schema_map
 
-    def execute_query(self, sql_ia: str, user_email: str):
+    def execute_query(self, response_sql: str, user_email: str):
         """
         Wraps the AI-generated SQL in a secure CTE filter
         """
         secure_sql = f"""
         WITH query_ia AS (
-            {sql_ia}
+            {response_sql}
         )
         SELECT * FROM query_ia
-        WHERE company_id IN (
-            SELECT company_id FROM `{self.project_id}.test_ia.users` 
-            WHERE email = @email_param
+        WHERE id_empresa IN (
+            SELECT id_empresa FROM `{self.project_id}.test_ia.usuarios` 
+            WHERE email = '{user_email}'
         )
         """
         
         self.log.info(f"Executing secure query for {user_email}")
         
         job_config = bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ScalarQueryParameter("email_param", "STRING", user_email)
-            ]
+            use_query_cache=True,
+            priority=bigquery.QueryPriority.INTERACTIVE,
         )
 
         try:
