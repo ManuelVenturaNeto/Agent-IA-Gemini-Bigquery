@@ -7,10 +7,27 @@ from src.api.models import ModelRequest
 from src.main.main import OrchestrateAgent
 
 
-router = APIRouter()
+router = APIRouter(tags=["Agent"])
 
 
-@router.post("/v1/ask")
+@router.post(
+    "/v1/ask",
+    summary="Run The Agent Pipeline",
+    description=(
+        "Runs the full backend pipeline: validates the bearer token, stores the incoming question, "
+        "routes the question context, generates SQL, executes the BigQuery query, stores any returned data, "
+        "and returns the formatted response payload."
+    ),
+    response_description="Agent execution result, including SQL, structured data, and natural-language response.",
+    responses={
+        401: {
+            "description": "Missing, malformed, or invalid authorization token.",
+        },
+        500: {
+            "description": "Unhandled backend failure while processing the pipeline.",
+        },
+    },
+)
 async def ask_agent(
     request: ModelRequest,
     authorization: str | None = Header(default=None),

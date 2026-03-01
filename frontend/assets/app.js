@@ -526,7 +526,7 @@ function addMessageToHistory(entry) {
 
 async function loadMockMessages() {
   try {
-    const response = await fetch("/chat_mensages.json", {
+    const response = await fetch("/chat_messages.json", {
       cache: "no-store",
     });
 

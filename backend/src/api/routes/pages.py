@@ -8,7 +8,7 @@ from src.api.config import api_audit, chat_store_manager, frontend_dir, login_pa
 router = APIRouter()
 
 
-@router.get("/", response_class=FileResponse)
+@router.get("/", response_class=FileResponse, include_in_schema=False)
 async def serve_frontend(
     session_token: str | None = Cookie(default=None, alias="ia_agent_auth_token"),
 ) -> Response:
@@ -26,7 +26,7 @@ async def serve_frontend(
     return FileResponse(frontend_dir / "index.html")
 
 
-@router.get("/login", response_class=FileResponse)
+@router.get("/login", response_class=FileResponse, include_in_schema=False)
 async def serve_login(
     session_token: str | None = Cookie(default=None, alias="ia_agent_auth_token"),
 ) -> Response:
@@ -42,7 +42,7 @@ async def serve_login(
     return FileResponse(login_page)
 
 
-@router.get("/chat_mensages.json", response_class=FileResponse)
+@router.get("/chat_messages.json", response_class=FileResponse, include_in_schema=False)
 async def serve_chat_messages() -> FileResponse:
     store = chat_store_manager.load_chat_store()
     api_audit.log_debug(

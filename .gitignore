@@ -1,5 +1,5 @@
 pets-482115-ia-agent-sa.json
-# chat_mensages.json
+backend/chat_messages.json
 storage/*
 backend/storage/*
 

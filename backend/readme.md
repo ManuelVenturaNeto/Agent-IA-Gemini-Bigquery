@@ -1,246 +1,131 @@
-# AI SQL Agent: BigQuery + Gemini
+# Analytical Agent Backend
 
-This project is an artificial intelligence agent designed to translate natural language questions into specific **Google BigQuery** SQL queries. The core differentiator of this agent is the **Security Wrapper** layer, which ensures that a user can never access data belonging to a company other than their own.
+This folder contains the backend application for the Analytical Agent project.
 
-## 🗄️ 1. Database Preparation (Mocked Data)
+It is a FastAPI service responsible for:
+- serving the frontend shell and static assets used by the web UI
+- authenticating the user with a bearer token
+- orchestrating the multi-agent pipeline
+- generating SQL, executing BigQuery queries, and formatting the final response
+- persisting local chat history and saved response data files
 
-The database simulates a travel management system. The script below prepares the environment in BigQuery within the `test_ia` dataset.
+## Folder Structure
 
-### Table Structure
-* **`users`**: Stores name, email, and `company_id` (the link to the organization).
-* **`passagens_aereas`**: Stores flight protocols, dates, and prices, also linked to a `company_id`.
+- `src/`: backend source code
+- `run.py`: local development entrypoint
+- `venv/`: Python virtual environment for the backend
+- `storage/`: saved response payloads
+- `chat_messages.json`: local chat history store
+- `pipeline_logs.log`: backend log file
+- `.env`: local environment variables
+- `requirements.txt`: Python dependencies for the backend environment
 
-[Image of a database schema showing a one-to-many relationship between users and passagens_aereas via company_id]
+## Requirements
 
-### Setup Script (SQL)
-Run the code below in the BigQuery console to generate the test data (51 users and 201 flight records):
+- Python 3.12+
+- A valid `.env` file in this folder
+- The Google service-account file referenced by `PROJECT_SA`
 
-```.env
-GEN_IA_KEY=<YOUR IA STUDIO KEY>
-PROJECT=<YOUR PROJECT>
-PROJECT_SA=<YOUR SERVICE ACCOUNT KEY FROM GCP>
+Expected `.env` variables:
+
+```env
+GEN_IA_KEY=your_llm_api_key
+PROJECT=your_gcp_project_id
+PROJECT_SA=your-service-account-file.json
+APP_HOST=127.0.0.1
+APP_PORT=8000
 ```
 
-```project-tree
-├── src
-│   ├── agents
-│   │   ├── __init__.py
-│   │   └── query_agent.py
-│   ├── api
-│   │   ├── __init__.py
-│   │   └── app.py
-│   ├── infra
-│   │   ├── config
-│   │   │   ├── config_google
-│   │   │   │   ├── __init__.py
-│   │   │   │   └── bigquery_maganger.py
-│   │   │   └── __init__.py
-│   │   └── __init__.py
-│   ├── main
-│   │   ├── __init__.py
-│   │   └── main.py
-│   └── __init__.py
-├── .gitignore
-├── readme.md
-├── run.py
-└── schema_project.png
+## Local Setup
+
+From the repository root:
+
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
+If `requirements.txt` is out of date in your environment, install the backend runtime packages directly:
 
-```sql
--- Schema Creation
-CREATE SCHEMA IF NOT EXISTS `test_ia`
-OPTIONS (location = "us-central1");
-
--- =========================================================
--- 1) TABELA: USUARIOS
--- =========================================================
-CREATE OR REPLACE TABLE `test_ia.usuarios` (
-    id INT64,
-    nome STRING,
-    email STRING,
-    id_empresa INT64
-);
-
-INSERT INTO `test_ia.usuarios` (id, nome, email, id_empresa)
-WITH first_names AS (
-    SELECT ARRAY<STRING>[
-        'Ana','Bruno','Carla','Daniel','Eduardo','Fernanda','Gabriel','Helena','Igor','Juliana',
-        'Kleber','Larissa','Marcos','Natalia','Otavio','Patricia','Rafael','Sabrina','Tiago','Vanessa',
-        'William','Yasmin','Beatriz','Caio','Debora','Fabio','Giovana','Hugo','Isabela','Joao',
-        'Karen','Leandro','Mariana','Nicolas','Paula','Renato','Sara','Vitor','Wesley','Aline',
-        'Cintia','Diego','Elaine','Felipe','Gustavo','Livia','Mateus','Priscila','Rodrigo','Tatiane'
-    ] AS arr
-),
-last_names AS (
-    SELECT ARRAY<STRING>[
-      'Silva','Souza','Oliveira','Santos','Pereira','Lima','Carvalho','Ribeiro','Almeida','Gomes',
-      'Martins','Ferreira','Rodrigues','Barbosa','Teixeira','Moura','Araujo','Monteiro'
-    ] AS arr
-)
-,
-base AS (
-    SELECT 
-        id 
-    FROM UNNEST(GENERATE_ARRAY(1, 50)) AS id
-)
-SELECT
-    base.id,
-    CONCAT(
-        (SELECT arr[OFFSET(MOD(base.id - 1, ARRAY_LENGTH(arr)))] FROM first_names),
-        ' ',
-        (SELECT arr[OFFSET(MOD(base.id * 3, ARRAY_LENGTH(arr)))] FROM last_names)) AS nome,
-    FORMAT('user%03d@empresa.com', base.id) AS email,
-    1001 + MOD(base.id - 1, 8) AS id_empresa
-FROM base
-UNION ALL
-SELECT 6666, 'Manuel Ventura', 'manuueelneto@gmail.com', 1;
-
--- =========================================================
--- 2) TABELA: PASSAGENS_AEREAS
--- =========================================================
-CREATE OR REPLACE TABLE `test_ia.passagens_aereas` (
-    id INT64,
-    protocolo STRING,
-    id_empresa INT64,
-    data_ida DATE,
-    data_volta DATE,
-    preco_ida NUMERIC,
-    preco_volta NUMERIC
-);
-
-INSERT INTO `test_ia.passagens_aereas`
-    (id, protocolo, id_empresa, data_ida, data_volta, preco_ida, preco_volta)
-WITH base AS (
-    SELECT 
-        id 
-    FROM UNNEST(GENERATE_ARRAY(1, 200)) AS id
-),
-datas AS (
-    SELECT 
-        id, 
-        DATE_ADD(DATE '2026-01-01', INTERVAL id DAY) AS data_ida
-    FROM base
-)
-SELECT
-    datas.id,
-    FORMAT('CODE-%s-%06d', FORMAT_DATE('%Y%m', datas.data_ida), datas.id) AS protocolo,
-    1001 + MOD(datas.id - 1, 8) AS id_empresa,
-    datas.data_ida AS data_ida,
-    DATE_ADD(datas.data_ida, INTERVAL (2 + MOD(datas.id, 14)) DAY) AS data_volta,
-    (CAST(150 + MOD(datas.id * 97, 2200) AS NUMERIC) + (CAST(MOD(datas.id * 13, 100) AS NUMERIC) / 100)) AS preco_ida,
-    (CAST(150 + MOD(datas.id * 131, 2400) AS NUMERIC) + (CAST(MOD(datas.id * 29, 100) AS NUMERIC) / 100)) AS preco_volta
-FROM datas
-UNION ALL
-SELECT 666, 'CODE-202602-000666', 1, DATE '2025-12-31', DATE '2026-12-31', 666.66, 1001.00;
-
--- =========================================================
--- 3) TABELA: EMPRESAS
--- =========================================================
-CREATE OR REPLACE TABLE `test_ia.empresas` (
-  id_empresa INT64,
-  nome_empresa STRING,
-  hash_empresa STRING
-);
-
--- Exemplo de grupos de "dono":
--- dono_a: empresas 1001 e 1002 (mesmo hash)
--- dono_b: empresa 1003
--- dono_c: empresas 1004, 1005, 1006 (mesmo hash)
--- dono_d: empresas 1007, 1008 (mesmo hash)
--- dono_manual: empresa 1
-INSERT INTO `test_ia.empresas` (id_empresa, nome_empresa, hash_empresa)
-SELECT 1,    'Empresa Manuel', TO_HEX(SHA256(CAST('dono_manual' AS BYTES))) UNION ALL
-SELECT 1001, 'Empresa 1001',   TO_HEX(SHA256(CAST('dono_a' AS BYTES)))      UNION ALL
-SELECT 1002, 'Empresa 1002',   TO_HEX(SHA256(CAST('dono_a' AS BYTES)))      UNION ALL
-SELECT 1003, 'Empresa 1003',   TO_HEX(SHA256(CAST('dono_b' AS BYTES)))      UNION ALL
-SELECT 1004, 'Empresa 1004',   TO_HEX(SHA256(CAST('dono_c' AS BYTES)))      UNION ALL
-SELECT 1005, 'Empresa 1005',   TO_HEX(SHA256(CAST('dono_c' AS BYTES)))      UNION ALL
-SELECT 1006, 'Empresa 1006',   TO_HEX(SHA256(CAST('dono_c' AS BYTES)))      UNION ALL
-SELECT 1007, 'Empresa 1007',   TO_HEX(SHA256(CAST('dono_d' AS BYTES)))      UNION ALL
-SELECT 1008, 'Empresa 1008',   TO_HEX(SHA256(CAST('dono_d' AS BYTES)));
-
--- =========================================================
--- 4) TABELA: DESPESAS
--- =========================================================
-CREATE OR REPLACE TABLE `test_ia.despesas` (
-  id INT64,
-  id_usuario INT64,
-  id_empresa INT64,
-  data_despesa DATE,
-  categoria STRING,
-  descricao STRING,
-  valor NUMERIC,
-  status STRING,
-  protocolo STRING
-);
-
-
-INSERT INTO `test_ia.despesas`
-    (id, id_usuario, id_empresa, data_despesa, categoria, descricao, valor, status, protocolo)
-WITH categorias AS (
-    SELECT ARRAY<STRING>[
-        'Alimentação',
-        'Gasoline',
-        'Hospedagem',
-        'Transporte',
-        'Passagem Aérea',
-        'Uber',
-        'Reembolso',
-    ] AS arr
-)
-,
-status_arr AS (
-    SELECT ARRAY<STRING>['APROVADA','PENDENTE','REPROVADA'] AS arr
-)
-,
-base AS (
-    SELECT 
-        id 
-    FROM UNNEST(GENERATE_ARRAY(1, 500)) AS id
-)
-,
-base_enriched AS (
-    SELECT
-        base.id AS id,
-        CASE WHEN MOD(base.id, 40) = 0 THEN 6666 ELSE (1 + MOD(base.id - 1, 50)) END AS id_usuario,
-        CASE WHEN MOD(base.id, 40) = 0 THEN 1    ELSE (1001 + MOD(base.id - 1, 8)) END AS id_empresa,
-        DATE_ADD(DATE '2026-01-01', INTERVAL MOD(base.id * 7, 180) DAY) AS data_despesa,
-        (SELECT arr[OFFSET(MOD(base.id - 1, ARRAY_LENGTH(arr)))] FROM categorias) AS categoria,
-        (SELECT arr[OFFSET(MOD(base.id - 1, ARRAY_LENGTH(arr)))] FROM status_arr) AS status
-    FROM base
-)
-SELECT
-    be.id,
-    be.id_usuario,
-    be.id_empresa,
-    be.data_despesa,
-    be.categoria,
-    CONCAT('Despesa ', be.categoria, ' #', CAST(be.id AS STRING)) AS descricao,
-    (CAST(20 + MOD(be.id * 37, 1500) AS NUMERIC) + (CAST(MOD(be.id * 19, 100) AS NUMERIC) / 100)) AS valor,
-    be.status,
-    IF(be.categoria = 'Passagem Aérea', pa.protocolo, NULL) AS protocolo
-FROM base_enriched be
-LEFT JOIN `test_ia.passagens_aereas` pa
-    ON pa.id = 1 + MOD(be.id - 1, 200)
-    AND pa.id_empresa = be.id_empresa
-
-UNION ALL
-
-SELECT
-    999999,
-    6666,
-    1,
-    DATE '2026-01-15',
-    'Alimentação',
-    'Jantar com cliente',
-    189.90,
-    'APROVADA',
-    NULL
-;
+```bash
+python -m pip install fastapi uvicorn python-dotenv pydantic email-validator google-cloud-bigquery langchain-community langchain-core langchain-google-genai
 ```
 
+## Run The Server
 
-## Schema of the project
+From `backend/`:
 
-![Schema of the project](schema_project.png)
+```bash
+source venv/bin/activate
+python run.py
+```
+
+The backend starts a local Uvicorn server and serves:
+- API docs on `http://127.0.0.1:8000/docs`
+- ReDoc on `http://127.0.0.1:8000/redoc`
+- Frontend shell on `http://127.0.0.1:8000/`
+
+## Swagger Documentation
+
+The backend uses FastAPI's built-in Swagger UI.
+
+Main documented endpoints:
+- `POST /v1/login`: returns a bearer token
+- `GET /v1/session`: validates the bearer token
+- `POST /v1/ask`: runs the full agent pipeline
+
+Static HTML routes such as `/` and `/login` are intentionally hidden from the OpenAPI schema so the docs stay focused on the backend API.
+
+### Authentication In Swagger
+
+The current API expects the token in the `Authorization` header using the format:
+
+```text
+Bearer <token>
+```
+
+Example workflow:
+1. Call `POST /v1/login`.
+2. Copy the returned `access_token`.
+3. Use it in `GET /v1/session` and `POST /v1/ask` as `Authorization: Bearer <token>`.
+
+## Example Requests
+
+### Login
+
+```json
+{
+  "username": "manuel",
+  "password": "123"
+}
+```
+
+### Ask The Agent
+
+```json
+{
+  "email": "manuueelneto@gmail.com",
+  "question": "How much did my travel expenses cost this month?",
+  "chat_id": "a5b7b8f0de8342f2aaf87fd90c1fe123",
+  "question_id": "e31cdb2d8a6142559ac4fe2e7c4a0ab1",
+  "response_type": "TEXT",
+  "question_context": "TRAVEL"
+}
+```
+
+## Notes
+
+- `chat_messages.json` is the canonical chat-history file and must stay inside `backend/`.
+- `storage/` contains generated data files returned by the agent pipeline.
+- `pipeline_logs.log` records backend activity for local troubleshooting.
+
+## Troubleshooting
+
+If the server fails to start:
+- confirm the virtual environment is active with `which python`
+- confirm the path points to `backend/venv/bin/python`
+- verify that `uvicorn` is installed in the backend virtual environment
+- verify `.env` points to a valid Google service-account file inside `backend/`

@@ -14,12 +14,33 @@ def generate_hash_id() -> str:
 class ChatStoreManager(LoggedComponent):
     def __init__(self, base_dir: Path) -> None:
         super().__init__()
-        self.chat_messages_path = base_dir / "chat_mensages.json"
-        self.storage_dir = base_dir / "storage"
+        self.base_dir = base_dir.resolve()
+        self.project_root = self.base_dir.parent
+        self.chat_messages_path = self.base_dir / "chat_messages.json"
+        self.storage_dir = self.base_dir / "storage"
         self.storage_dir.mkdir(exist_ok=True)
         self.log_debug("Chat store manager initialized.")
 
+    def _reconcile_legacy_root_chat_store(self) -> None:
+        legacy_chat_path = self.project_root / "chat_messages.json"
+        if legacy_chat_path == self.chat_messages_path or not legacy_chat_path.exists():
+            return
+
+        if not self.chat_messages_path.exists():
+            legacy_chat_path.replace(self.chat_messages_path)
+            self.log_warning(
+                f"Moved legacy chat store to {self.chat_messages_path}."
+            )
+            return
+
+        legacy_chat_path.unlink(missing_ok=True)
+        self.log_warning(
+            "Removed legacy root-level chat_messages.json file."
+        )
+
     def ensure_chat_store(self) -> None:
+        self._reconcile_legacy_root_chat_store()
+
         if self.chat_messages_path.exists():
             return
 
@@ -33,7 +54,7 @@ class ChatStoreManager(LoggedComponent):
             ),
             encoding="utf-8",
         )
-        self.log_info("Created chat_mensages.json store.")
+        self.log_info("Created chat_messages.json store.")
 
     def load_chat_store(self) -> dict[str, Any]:
         self.ensure_chat_store()
