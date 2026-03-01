@@ -1,6 +1,6 @@
 from enum import Enum
 
-from src.agents.query_agent import QueryAgent, ResponseAgent, RouterAgent, SecurityAgent
+from src.agents import QueryAgent, ResponseAgent, RouterAgent, SecurityAgent
 from src.infra.config.config_google.bigquery_maganger import BigQueryManager
 from src.infra.logging_utils import LoggedComponent
 
