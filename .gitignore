@@ -1,4 +1,7 @@
 pets-482115-ia-agent-sa.json
+# chat_mensages.json
+storage/*
+backend/storage/*
 
 # Created by https://www.toptal.com/developers/gitignore/api/python
 # Edit at https://www.toptal.com/developers/gitignore?templates=python

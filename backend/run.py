@@ -1,5 +1,5 @@
-import logging
 import os
+from pathlib import Path
 
 import uvicorn
 
@@ -11,6 +11,8 @@ class ServerRunner(LoggedComponent):
         super().__init__()
 
     def run(self) -> None:
+        backend_root = Path(__file__).resolve().parent
+        os.chdir(backend_root)
         host = os.getenv("APP_HOST", "127.0.0.1")
         port = int(os.getenv("APP_PORT", "8000"))
         self.log_info(f"Starting agent server on {host}:{port}.")
@@ -22,5 +24,5 @@ def run_server() -> None:
 
 
 if __name__ == "__main__":
-    configure_file_logging()
+    configure_file_logging(str(Path(__file__).resolve().with_name("pipeline_logs.log")))
     run_server()
