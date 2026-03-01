@@ -16,33 +16,33 @@ class AuthServiceTests(unittest.TestCase):
         auth_module.token_urlsafe = lambda _: "fixed-token"
 
         try:
-            payload = auth_module.login_user("manuel", "123")
+            payload = auth_module.login_user("demo_user", "demo_password")
         finally:
             auth_module.token_urlsafe = original_generator
 
         self.assertEqual(payload["access_token"], "fixed-token")
         self.assertEqual(payload["token_type"], "bearer")
-        self.assertEqual(payload["username"], "manuel")
-        self.assertEqual(payload["email"], "manuueelneto@gmail.com")
+        self.assertEqual(payload["username"], "demo_user")
+        self.assertEqual(payload["email"], "user@example.com")
 
     def test_login_user_rejects_invalid_credentials(self) -> None:
         """It raises an HTTP error when credentials are invalid."""
         with self.assertRaises(HTTPException) as context:
-            auth_module.login_user("manuel", "wrong")
+            auth_module.login_user("demo_user", "wrong")
 
         self.assertEqual(context.exception.status_code, 401)
 
     def test_validate_token_returns_user_payload(self) -> None:
         """It returns the stored user when the bearer token is valid."""
         auth_module._active_tokens["fixed-token"] = {
-            "username": "manuel",
-            "email": "manuueelneto@gmail.com",
+            "username": "demo_user",
+            "email": "user@example.com",
         }
 
         user = auth_module.validate_token("Bearer fixed-token")
 
-        self.assertEqual(user["username"], "manuel")
-        self.assertEqual(user["email"], "manuueelneto@gmail.com")
+        self.assertEqual(user["username"], "demo_user")
+        self.assertEqual(user["email"], "user@example.com")
 
     def test_validate_token_rejects_missing_header(self) -> None:
         """It raises an HTTP error when the authorization header is missing."""

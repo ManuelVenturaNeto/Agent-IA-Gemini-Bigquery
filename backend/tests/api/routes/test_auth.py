@@ -15,27 +15,29 @@ class AuthRoutesTests(unittest.TestCase):
             return_value={
                 "access_token": "fixed-token",
                 "token_type": "bearer",
-                "username": "manuel",
-                "email": "manuueelneto@gmail.com",
+                "username": "demo_user",
+                "email": "user@example.com",
             },
         ):
             response = asyncio.run(
-                auth_routes.login(LoginRequest(username="manuel", password="123"))
+                auth_routes.login(
+                    LoginRequest(username="demo_user", password="demo_password")
+                )
             )
 
         self.assertEqual(response["access_token"], "fixed-token")
-        self.assertEqual(response["email"], "manuueelneto@gmail.com")
+        self.assertEqual(response["email"], "user@example.com")
 
     def test_session_status_returns_validated_user(self) -> None:
         """It returns the validated user payload from the auth service."""
         with patch(
             "src.api.routes.auth.validate_token",
             return_value={
-                "username": "manuel",
-                "email": "manuueelneto@gmail.com",
+                "username": "demo_user",
+                "email": "user@example.com",
             },
         ):
             response = asyncio.run(auth_routes.session_status("Bearer fixed-token"))
 
         self.assertEqual(response["status"], "success")
-        self.assertEqual(response["username"], "manuel")
+        self.assertEqual(response["username"], "demo_user")

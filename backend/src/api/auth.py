@@ -6,9 +6,9 @@ from fastapi import HTTPException, status
 from src.infra.logging_utils import LoggedComponent
 
 
-MOCK_USERNAME: Final[str] = "manuel"
-MOCK_PASSWORD: Final[str] = "123"
-MOCK_EMAIL: Final[str] = "manuueelneto@gmail.com"
+MOCK_USERNAME: Final[str] = "demo_user"
+MOCK_PASSWORD: Final[str] = "demo_password"
+MOCK_EMAIL: Final[str] = "user@example.com"
 
 _active_tokens: dict[str, dict[str, str]] = {}
 

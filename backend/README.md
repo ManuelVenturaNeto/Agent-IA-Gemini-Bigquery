@@ -179,8 +179,8 @@ Blocked prompt example:
 
 ```json
 {
-  "username": "manuel",
-  "password": "123"
+  "username": "demo_user",
+  "password": "demo_password"
 }
 ```
 
@@ -188,10 +188,10 @@ Blocked prompt example:
 
 ```json
 {
-  "email": "manuueelneto@gmail.com",
+  "email": "user@example.com",
   "question": "How much did my travel expenses cost this month?",
-  "chat_id": "a5b7b8f0de8342f2aaf87fd90c1fe123",
-  "question_id": "e31cdb2d8a6142559ac4fe2e7c4a0ab1",
+  "chat_id": "chat_demo_001",
+  "question_id": "question_demo_001",
   "response_type": "TEXT",
   "question_context": "TRAVEL"
 }

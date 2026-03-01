@@ -4,7 +4,7 @@ from pydantic import BaseModel, EmailStr, Field
 class ModelRequest(BaseModel):
     email: EmailStr = Field(
         description="Authenticated user email. The backend currently validates the bearer token and uses that identity.",
-        examples=["manuueelneto@gmail.com"],
+        examples=["user@example.com"],
     )
     question: str = Field(
         description="Natural-language question that will be sent into the multi-agent pipeline.",
@@ -12,11 +12,11 @@ class ModelRequest(BaseModel):
     )
     chat_id: str = Field(
         description="Frontend-generated chat identifier used to group question history.",
-        examples=["a5b7b8f0de8342f2aaf87fd90c1fe123"],
+        examples=["chat_demo_001"],
     )
     question_id: str = Field(
         description="Frontend-generated unique question identifier for the current request.",
-        examples=["e31cdb2d8a6142559ac4fe2e7c4a0ab1"],
+        examples=["question_demo_001"],
     )
     response_type: str | None = Field(
         default=None,
@@ -33,9 +33,9 @@ class ModelRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str = Field(
         description="Username used by the login endpoint.",
-        examples=["manuel"],
+        examples=["demo_user"],
     )
     password: str = Field(
         description="Password used by the login endpoint.",
-        examples=["123"],
+        examples=["demo_password"],
     )

@@ -12,7 +12,7 @@ class AgentRoutesTests(unittest.TestCase):
     def test_ask_agent_returns_success_payload(self) -> None:
         """It returns the assembled response payload for a successful request."""
         request = ModelRequest(
-            email="manuueelneto@gmail.com",
+            email="user@example.com",
             question="How much did my travel expenses cost this month?",
             chat_id="chat-1",
             question_id="question-1",
@@ -31,8 +31,8 @@ class AgentRoutesTests(unittest.TestCase):
         with patch(
             "src.api.routes.agent.validate_token",
             return_value={
-                "username": "manuel",
-                "email": "manuueelneto@gmail.com",
+                "username": "demo_user",
+                "email": "user@example.com",
             },
         ), patch(
             "src.api.routes.agent.OrchestrateAgent",
@@ -48,7 +48,7 @@ class AgentRoutesTests(unittest.TestCase):
             response = asyncio.run(agent_routes.ask_agent(request, "Bearer fixed-token"))
 
         self.assertEqual(response["status"], "success")
-        self.assertEqual(response["user"], "manuel")
+        self.assertEqual(response["user"], "demo_user")
         self.assertEqual(
             response["response"]["data_path"],
             "/storage/chat-1/question-1/response_data.json",
