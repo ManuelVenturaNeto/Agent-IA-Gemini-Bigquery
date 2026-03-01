@@ -12,6 +12,7 @@ It is a FastAPI service responsible for:
 ## Folder Structure
 
 - `src/`: backend source code
+- `tests/`: backend tests organized to mirror the `src/` package structure
 - `run.py`: local development entrypoint
 - `venv/`: Python virtual environment for the backend
 - `storage/`: saved response payloads
@@ -68,6 +69,22 @@ The backend starts a local Uvicorn server and serves:
 - ReDoc on `http://127.0.0.1:8000/redoc`
 - Frontend shell on `http://127.0.0.1:8000/`
 
+## Run The Tests
+
+From `backend/`:
+
+```bash
+venv/bin/python -m unittest discover -s tests
+```
+
+This command runs the backend test suite using the local virtual environment.
+
+Current test layout mirrors the backend package structure:
+- `tests/agents/`: tests for `src/agents/`
+- `tests/api/`: tests for `src/api/`
+- `tests/api/routes/`: tests for `src/api/routes/`
+- `tests/main/`: tests for `src/main/`
+
 ## Swagger Documentation
 
 The backend uses FastAPI's built-in Swagger UI.
@@ -101,7 +118,7 @@ flowchart TD
     A[Client sends POST /v1/ask] --> B[FastAPI route validates bearer token]
     B --> C[Persist incoming question in local chat store]
     C --> D[Create OrchestrateAgent]
-    D --> E[SecurityAgent checks malicious intent]
+    D --> E[SecurityAgent checks unsafe intent and direct record lookups]
     E -->|Unsafe| F[Return security error response]
     E -->|Safe| G[Resolve context]
     G -->|Provided valid context| H[Use request context]
@@ -148,10 +165,13 @@ flowchart TD
 ```
 
 Decision summary:
-- `SecurityAgent` is the first gate and can stop the request immediately.
+- `SecurityAgent` is the first gate and can stop the request immediately when it detects injection, malicious intent, or direct identifier-based record lookups.
 - `RouterAgent` only runs when `question_context` is missing or invalid.
 - `QueryAgent` retries SQL generation up to 3 times until the SQL passes the local validation rules.
 - `ResponseAgent` always formats the final response, but returns a fixed fallback message when the query returns no rows.
+
+Blocked prompt example:
+- `Give me data from user with id = 20`
 
 ## Example Requests
 
@@ -182,6 +202,7 @@ Decision summary:
 - `chat_messages.json` is the canonical chat-history file and must stay inside `backend/`.
 - `storage/` contains generated data files returned by the agent pipeline.
 - `pipeline_logs.log` records backend activity for local troubleshooting.
+- FastAPI routes are registered explicitly in the route modules, and the test suite covers the agent flow, API modules, and orchestrator behavior.
 
 ## Troubleshooting
 

@@ -1,5 +1,8 @@
 from enum import Enum
-
+from typing import Any
+from typing import Dict
+from typing import Optional
+from typing import Set
 from src.agents import QueryAgent, ResponseAgent, RouterAgent, SecurityAgent
 from src.infra.config.config_google.bigquery_maganger import BigQueryManager
 from src.infra.logging_utils import LoggedComponent
@@ -26,11 +29,10 @@ class TableList(Enum):
 
 
 class OrchestrateAgent(LoggedComponent):
-    """
-    Orchestrate Agent - Manager of the multi-agent workflow
-    """
+    """Manages the multi-agent workflow from safety checks to response generation."""
 
     def __init__(self) -> None:
+        """Create all agents and shared infrastructure used by the pipeline."""
         super().__init__()
         self.log_debug("Main pipeline initialized.")
         self.security = SecurityAgent()
@@ -40,8 +42,8 @@ class OrchestrateAgent(LoggedComponent):
         self.db = BigQueryManager()
         self.project_id = self.db.project_id
 
-    @staticmethod
-    def _available_contexts() -> set[str]:
+    def _available_contexts(self) -> Set[str]:
+        """Return the set of supported business contexts."""
         return {item.value for item in QuestionContext}
 
     def _normalize_request(
@@ -50,10 +52,11 @@ class OrchestrateAgent(LoggedComponent):
         input_user: str,
         input_chat_id: str,
         input_question_id: str,
-        input_response_type: str | None,
-        input_question_context: str | None,
-    ) -> dict[str, str | None]:
-        return {
+        input_response_type: Optional[str],
+        input_question_context: Optional[str],
+    ) -> Dict[str, Optional[str]]:
+        """Normalize raw request values into the shape used by the pipeline."""
+        normalized_request = {
             "user_email": input_user,
             "question_text": input_question,
             "chat_id": input_chat_id,
@@ -61,6 +64,7 @@ class OrchestrateAgent(LoggedComponent):
             "question_context": input_question_context if input_question_context else None,
             "response_type": input_response_type if input_question_context else "TEXT",
         }
+        return normalized_request
 
     def _reject_if_unsafe(
         self,
@@ -68,19 +72,21 @@ class OrchestrateAgent(LoggedComponent):
         user_email: str,
         chat_id: str,
         question_id: str,
-    ) -> dict[str, str] | None:
-        is_safe = self.security.check_safety(
+    ) -> Optional[Dict[str, str]]:
+        """Stop the pipeline early when the security decision is unsafe."""
+        decision = self.security.check_safety(
             question_text=question_text,
             user_email=user_email,
             chat_id=chat_id,
             question_id=question_id,
         )
 
-        if is_safe:
+        if decision.is_safe:
             return None
 
         self.log_warning(
-            "Security breach attempt detected.",
+            "Security breach attempt detected. "
+            f"category={decision.category} reason={decision.reason}",
             user_email=user_email,
             chat_id=chat_id,
             question_id=question_id,
@@ -93,11 +99,12 @@ class OrchestrateAgent(LoggedComponent):
     def _resolve_context_key(
         self,
         question_text: str,
-        question_context: str | None,
+        question_context: Optional[str],
         user_email: str,
         chat_id: str,
         question_id: str,
     ) -> str:
+        """Resolve the context from the request or from the router agent."""
         available_contexts = self._available_contexts()
 
         if question_context and question_context.upper() in available_contexts:
@@ -130,7 +137,8 @@ class OrchestrateAgent(LoggedComponent):
         user_email: str,
         chat_id: str,
         question_id: str,
-    ) -> dict[str, dict[str, str]] | None:
+    ) -> Optional[Dict[str, Dict[str, str]]]:
+        """Load schemas for all tables configured for the selected context."""
         table_list: list[str] = TableList[context_key].value
 
         if not table_list:
@@ -163,8 +171,9 @@ class OrchestrateAgent(LoggedComponent):
         user_email: str,
         chat_id: str,
         question_id: str,
-        response_type: str | None,
-    ) -> dict[str, object]:
+        response_type: Optional[str],
+    ) -> Dict[str, Any]:
+        """Run SQL generation, query execution, and response formatting."""
         tables_and_schemas = self._build_tables_and_schemas(
             context_key=context_key,
             user_email=user_email,
@@ -223,12 +232,10 @@ class OrchestrateAgent(LoggedComponent):
         input_user: str,
         input_chat_id: str,
         input_question_id: str,
-        input_response_type: str | None,
-        input_question_context: str | None,
-    ) -> dict[str, object]:
-        """
-        Executes the Multi-Agent Pipeline: Security -> Router -> SQL Specialist -> Response
-        """
+        input_response_type: Optional[str],
+        input_question_context: Optional[str],
+    ) -> Dict[str, Any]:
+        """Execute the pipeline from safety validation through final response generation."""
         try:
             request_data = self._normalize_request(
                 input_question=input_question,
