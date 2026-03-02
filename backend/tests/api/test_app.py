@@ -19,3 +19,5 @@ class AppModuleTests(unittest.TestCase):
         self.assertIn("/v1/login", paths)
         self.assertIn("/v1/session", paths)
         self.assertIn("/v1/ask", paths)
+        self.assertIn("/v1/graph", paths)
+        self.assertIn("/v1/runtime-logs", paths)

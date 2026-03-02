@@ -15,13 +15,13 @@ class AuthRoutesTests(unittest.TestCase):
             return_value={
                 "access_token": "fixed-token",
                 "token_type": "bearer",
-                "username": "demo_user",
                 "email": "user@example.com",
+                "can_view_runtime_logs": True,
             },
         ):
             response = asyncio.run(
                 auth_routes.login(
-                    LoginRequest(username="demo_user", password="demo_password")
+                    LoginRequest(email="user@example.com", password="demo_password")
                 )
             )
 
@@ -33,11 +33,12 @@ class AuthRoutesTests(unittest.TestCase):
         with patch(
             "src.api.routes.auth.validate_token",
             return_value={
-                "username": "demo_user",
                 "email": "user@example.com",
+                "can_view_runtime_logs": True,
             },
         ):
             response = asyncio.run(auth_routes.session_status("Bearer fixed-token"))
 
         self.assertEqual(response["status"], "success")
-        self.assertEqual(response["username"], "demo_user")
+        self.assertEqual(response["email"], "user@example.com")
+        self.assertTrue(response["can_view_runtime_logs"])

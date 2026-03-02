@@ -64,16 +64,17 @@ class BigQueryManager(LoggedComponent):
         """
         Wraps the AI-generated SQL in a secure CTE filter
         """
-        secure_sql = f"""
-        WITH query_ia AS (
-            {response_sql}
-        )
-        SELECT * FROM query_ia
-        WHERE id_empresa IN (
-            SELECT id_empresa FROM `{self.project_id}.test_ia.usuarios`
-            WHERE email = '{user_email}'
-        )
-        """
+        # secure_sql = f"""
+        # WITH query_ia AS (
+        #     {response_sql}
+        # )
+        # SELECT * FROM query_ia
+        # WHERE id_empresa IN (
+        #     SELECT id_empresa FROM `{self.project_id}.test_ia.usuarios`
+        #     WHERE email = @user_email
+        # )
+        # """
+        secure_sql = response_sql
 
         self.log_info(
             "Executing secure BigQuery query.",
@@ -85,6 +86,9 @@ class BigQueryManager(LoggedComponent):
         job_config = bigquery.QueryJobConfig(
             use_query_cache=True,
             priority=bigquery.QueryPriority.INTERACTIVE,
+            query_parameters=[
+                bigquery.ScalarQueryParameter("user_email", "STRING", user_email)
+            ],
         )
 
         try:

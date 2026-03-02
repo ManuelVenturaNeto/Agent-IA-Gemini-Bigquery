@@ -56,3 +56,24 @@ class QueryAgentGenerateSqlTests(unittest.TestCase):
 
         self.assertEqual(agent._chain.invoke.call_count, 3)
         agent.log_error.assert_called_once()
+
+    def test_uses_retry_reason_feedback_for_regeneration(self) -> None:
+        """It sends the previous SQL and retry reason back into the LLM."""
+        agent = self._build_agent()
+        agent._chain.invoke.return_value = "SELECT id_empresa FROM test"
+
+        sql = agent.generate_sql(
+            question_text="Show expenses",
+            user_email="user@example.com",
+            chat_id="chat-1",
+            question_id="question-1",
+            tables_and_schemas={"test": {"id_empresa": "INTEGER"}},
+            retry_reason="Database execution error: Syntax error near FROM",
+            previous_sql="SELECT id_empresa, FROM test",
+        )
+
+        self.assertEqual(sql, "SELECT id_empresa FROM test")
+        self.assertEqual(agent._chain.invoke.call_count, 1)
+        feedback = agent._chain.invoke.call_args.args[0]["feedback"]
+        self.assertIn("Database execution error: Syntax error near FROM", feedback)
+        self.assertIn("SELECT id_empresa, FROM test", feedback)

@@ -15,9 +15,9 @@ router = APIRouter(tags=["Authentication"])
 class AuthRouteHandler:
     """Handles the authentication HTTP endpoints."""
 
-    async def login(self, request: LoginRequest) -> Dict[str, str]:
+    async def login(self, request: LoginRequest) -> Dict[str, Any]:
         """Return a bearer token payload for valid credentials."""
-        payload = login_user(request.username, request.password)
+        payload = login_user(str(request.email), request.password)
         api_audit.log_info("Login endpoint completed.", user_email=payload["email"])
         return payload
 
@@ -34,8 +34,8 @@ class AuthRouteHandler:
         return {
             "status": "success",
             "status_code": 200,
-            "username": authenticated_user["username"],
             "email": authenticated_user["email"],
+            "can_view_runtime_logs": authenticated_user["can_view_runtime_logs"],
         }
 
 
@@ -49,7 +49,7 @@ router.add_api_route(
     methods=["POST"],
     summary="Authenticate User",
     description=(
-        "Validates the provided username and password and returns a bearer token "
+        "Validates the provided email and password and returns a bearer token "
         "used by the frontend."
     ),
     response_description=(

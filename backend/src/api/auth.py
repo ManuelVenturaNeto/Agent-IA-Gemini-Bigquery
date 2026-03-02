@@ -1,47 +1,60 @@
+import os
 from secrets import token_urlsafe
-from typing import Final
-
-from fastapi import HTTPException, status
-
+from typing import Dict
+from typing import Optional
+from dotenv import load_dotenv
+from fastapi import HTTPException
+from fastapi import status
 from src.infra.logging_utils import LoggedComponent
 
 
-MOCK_USERNAME: Final[str] = "demo_user"
-MOCK_PASSWORD: Final[str] = "demo_password"
-MOCK_EMAIL: Final[str] = "user@example.com"
+load_dotenv()
 
-_active_tokens: dict[str, dict[str, str]] = {}
+_active_tokens: Dict[str, Dict[str, object]] = {}
 
 
 class AuthService(LoggedComponent):
+    """Authenticates users and validates in-memory bearer tokens."""
+
     def __init__(self) -> None:
+        """Load login settings and initialize the auth logger."""
         super().__init__()
+        self._login_password = os.getenv("APP_LOGIN_PASSWORD", "demo_password")
+        self._privileged_log_emails = self._load_privileged_log_emails()
 
-    def login_user(self, username: str, password: str) -> dict[str, str]:
-        self.log_info(f"Login attempt for username: {username}")
+    def login_user(self, email: str, password: str) -> Dict[str, object]:
+        """Authenticate an email and return the bearer token payload."""
+        normalized_email = email.strip().lower()
+        self.log_info(f"Login attempt for email: {normalized_email}")
 
-        if username != MOCK_USERNAME or password != MOCK_PASSWORD:
-            self.log_warning(f"Invalid login attempt for username: {username}")
+        if password != self._login_password:
+            self.log_warning(f"Invalid login attempt for email: {normalized_email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid username or password.",
+                detail="Invalid email or password.",
             )
 
+        can_view_runtime_logs = normalized_email in self._privileged_log_emails
         token = token_urlsafe(24)
         _active_tokens[token] = {
-            "username": username,
-            "email": MOCK_EMAIL,
+            "email": normalized_email,
+            "can_view_runtime_logs": can_view_runtime_logs,
         }
 
-        self.log_info("Login successful.", user_email=MOCK_EMAIL)
+        self.log_info("Login successful.", user_email=normalized_email)
         return {
             "access_token": token,
             "token_type": "bearer",
-            "username": username,
-            "email": MOCK_EMAIL,
+            "email": normalized_email,
+            "can_view_runtime_logs": can_view_runtime_logs,
         }
 
-    def validate_token(self, authorization: str | None) -> dict[str, str]:
+    def validate_token(
+        self,
+        authorization: Optional[str],
+        should_log_success: bool = True,
+    ) -> Dict[str, object]:
+        """Validate the Authorization header and return the stored user payload."""
         if not authorization:
             self.log_warning("Missing authorization header.")
             raise HTTPException(
@@ -65,16 +78,26 @@ class AuthService(LoggedComponent):
                 detail="Invalid or expired token.",
             )
 
-        self.log_info("Token validated.", user_email=user["email"])
+        if should_log_success:
+            self.log_info("Token validated.", user_email=str(user["email"]))
         return user
+
+    def _load_privileged_log_emails(self) -> set[str]:
+        """Read the privileged log-viewer emails from the environment."""
+        raw_value = os.getenv(
+            "PRIVILEGED_LOG_VIEWER_EMAILS",
+            "manuueelneto@gmail.com,user@example.com",
+        )
+        email_list = set()
+
+        for item in raw_value.split(","):
+            normalized_email = item.strip().lower()
+            if normalized_email:
+                email_list.add(normalized_email)
+
+        return email_list
 
 
 auth_service = AuthService()
-
-
-def login_user(username: str, password: str) -> dict[str, str]:
-    return auth_service.login_user(username, password)
-
-
-def validate_token(authorization: str | None) -> dict[str, str]:
-    return auth_service.validate_token(authorization)
+login_user = auth_service.login_user
+validate_token = auth_service.validate_token

@@ -35,6 +35,8 @@ PROJECT=your_gcp_project_id
 PROJECT_SA=your-service-account-file.json
 APP_HOST=127.0.0.1
 APP_PORT=8000
+APP_LOGIN_PASSWORD=your_shared_login_password
+PRIVILEGED_LOG_VIEWER_EMAILS=manuueelneto@gmail.com,user@example.com
 ```
 
 ## Local Setup
@@ -105,9 +107,9 @@ Bearer <token>
 ```
 
 Example workflow:
-1. Call `POST /v1/login`.
+1. Call `POST /v1/login` with an email and password.
 2. Copy the returned `access_token`.
-3. Use it in `GET /v1/session` and `POST /v1/ask` as `Authorization: Bearer <token>`.
+3. Use it in `GET /v1/session`, `POST /v1/ask`, and `GET /v1/runtime-logs` as `Authorization: Bearer <token>`.
 
 ## Process Flow
 
@@ -169,6 +171,7 @@ Decision summary:
 - `RouterAgent` only runs when `question_context` is missing or invalid.
 - `QueryAgent` retries SQL generation up to 3 times until the SQL passes the local validation rules.
 - `ResponseAgent` always formats the final response, but returns a fixed fallback message when the query returns no rows.
+- Users whose email is listed in `PRIVILEGED_LOG_VIEWER_EMAILS` can see the live runtime log panel in the right-side UI column.
 
 Blocked prompt example:
 - `Give me data from user with id = 20`
@@ -179,7 +182,7 @@ Blocked prompt example:
 
 ```json
 {
-  "username": "demo_user",
+  "email": "user@example.com",
   "password": "demo_password"
 }
 ```

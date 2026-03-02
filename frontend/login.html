@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>IA Agent Login</title>
-  <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="stylesheet" href="/assets/styles.css?v=20260301h">
 </head>
 <body>
   <main class="auth-shell">
@@ -21,11 +21,11 @@
       </div>
 
       <form id="login-form" class="auth-form">
-        <label id="login-username-label" class="composer-label" for="login-username">USUARIO</label>
-        <input id="login-username" type="text" name="username" value="manuel" autocomplete="username" required>
+        <label id="login-email-label" class="composer-label" for="login-email">EMAIL</label>
+        <input id="login-email" type="email" name="email" value="user@example.com" autocomplete="email" required>
 
         <label id="login-password-label" class="composer-label" for="login-password">SENHA</label>
-        <input id="login-password" type="password" name="password" value="123" autocomplete="current-password" required>
+        <input id="login-password" type="password" name="password" value="demo_password" autocomplete="current-password" required>
 
         <button type="submit" id="login-submit" class="submit-button">ENTRAR</button>
         <p id="login-status" class="status-line"></p>
@@ -33,6 +33,6 @@
     </section>
   </main>
 
-  <script src="/assets/login.js"></script>
+  <script src="/assets/login.js?v=20260301c"></script>
 </body>
 </html>

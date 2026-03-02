@@ -1,7 +1,7 @@
 const loginForm = document.getElementById("login-form");
 const loginStatus = document.getElementById("login-status");
 const pageTitle = document.getElementById("login-page-title");
-const usernameLabel = document.getElementById("login-username-label");
+const emailLabel = document.getElementById("login-email-label");
 const passwordLabel = document.getElementById("login-password-label");
 const submitButton = document.getElementById("login-submit");
 const themeToggle = document.getElementById("login-theme-toggle");
@@ -10,14 +10,14 @@ const languageButtons = Array.from(document.querySelectorAll("[data-language]"))
 const LANGUAGE_STORAGE_KEY = "ia-agent-language";
 const THEME_STORAGE_KEY = "ia-agent-theme";
 const AUTH_TOKEN_STORAGE_KEY = "ia-agent-auth-token";
-const AUTH_USERNAME_STORAGE_KEY = "ia-agent-auth-user";
 const AUTH_EMAIL_STORAGE_KEY = "ia-agent-auth-email";
+const AUTH_LOG_PERMISSION_STORAGE_KEY = "ia-agent-log-permission";
 const AUTH_COOKIE_KEY = "ia_agent_auth_token";
 
 const translations = {
   pt: {
     title: "LOGIN DO AGENTE IA",
-    username: "USUARIO",
+    email: "EMAIL",
     password: "SENHA",
     submit: "ENTRAR",
     theme: "TEMA",
@@ -28,7 +28,7 @@ const translations = {
   },
   en: {
     title: "IA AGENT LOGIN",
-    username: "USERNAME",
+    email: "EMAIL",
     password: "PASSWORD",
     submit: "LOGIN",
     theme: "THEME",
@@ -39,7 +39,7 @@ const translations = {
   },
   es: {
     title: "LOGIN DEL AGENTE IA",
-    username: "USUARIO",
+    email: "EMAIL",
     password: "CLAVE",
     submit: "ENTRAR",
     theme: "TEMA",
@@ -76,7 +76,7 @@ function renderThemeLabel() {
 function updateStaticText() {
   document.documentElement.lang = currentLanguage;
   pageTitle.textContent = t("title");
-  usernameLabel.textContent = t("username");
+  emailLabel.textContent = t("email");
   passwordLabel.textContent = t("password");
   submitButton.textContent = t("submit");
   renderThemeLabel();
@@ -118,15 +118,18 @@ function clearAuthCookie() {
 
 function clearStoredSession() {
   window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
-  window.localStorage.removeItem(AUTH_USERNAME_STORAGE_KEY);
   window.localStorage.removeItem(AUTH_EMAIL_STORAGE_KEY);
+  window.localStorage.removeItem(AUTH_LOG_PERMISSION_STORAGE_KEY);
   clearAuthCookie();
 }
 
 function persistSession(payload) {
   window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, payload.access_token);
-  window.localStorage.setItem(AUTH_USERNAME_STORAGE_KEY, payload.username || "");
   window.localStorage.setItem(AUTH_EMAIL_STORAGE_KEY, payload.email || "");
+  window.localStorage.setItem(
+    AUTH_LOG_PERMISSION_STORAGE_KEY,
+    payload.can_view_runtime_logs ? "true" : "false"
+  );
   setAuthCookie(payload.access_token);
 }
 
@@ -185,7 +188,7 @@ loginForm.addEventListener("submit", async (event) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        username: formData.get("username"),
+        email: formData.get("email"),
         password: formData.get("password"),
       }),
     });

@@ -1,7 +1,11 @@
 from src.agents.base import BaseAgent
+from .tool_kit import BusinessQuestionDetector
 from .tool_kit import DirectIdentifierLookupDetector
+from .tool_kit import PromptInjectionDetector
+from .tool_kit import AuthenticatedSelfQueryDetector
 from .tool_kit import SecurityDecision
 from .tool_kit import SecurityToolkit
+from .tool_kit import SqlInjectionPatternDetector
 
 
 class SecurityAgent(BaseAgent):
@@ -10,7 +14,11 @@ class SecurityAgent(BaseAgent):
     def __init__(self) -> None:
         """Initialize the LLM toolkit used by the security agent."""
         super().__init__()
-        self._detector = DirectIdentifierLookupDetector()
+        self._business_detector = BusinessQuestionDetector()
+        self._direct_lookup_detector = DirectIdentifierLookupDetector()
+        self._sql_injection_detector = SqlInjectionPatternDetector()
+        self._prompt_injection_detector = PromptInjectionDetector()
+        self._self_query_detector = AuthenticatedSelfQueryDetector()
         self._toolkit = SecurityToolkit(self.llm)
 
     def check_safety(
@@ -21,7 +29,19 @@ class SecurityAgent(BaseAgent):
         question_id: str,
     ) -> SecurityDecision:
         """Return the structured safety decision for the incoming prompt."""
-        response = self._detector.detect(question_text)
+        response = self._business_detector.detect(question_text)
+
+        if response is None:
+            response = self._direct_lookup_detector.detect(question_text)
+
+        if response is None:
+            response = self._sql_injection_detector.detect(question_text)
+
+        if response is None:
+            response = self._prompt_injection_detector.detect(question_text)
+
+        if response is None:
+            response = self._self_query_detector.detect(question_text)
 
         if response is None:
             response = self._toolkit.invoke(question_text)

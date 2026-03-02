@@ -4,104 +4,127 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Analytical Agent</title>
-  <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="stylesheet" href="/assets/styles.css?v=20260302b">
 </head>
 <body>
   <main class="dashboard-shell">
-    <section class="console-frame">
-      <aside class="chat-rail">
-        <div class="rail-header">
-          <span class="rail-dot"></span>
-          <p id="rail-title">Chats</p>
-        </div>
-        <div class="chat-list" role="list" aria-label="Current chat">
-          <button type="button" id="chat-pill" class="chat-pill active" data-chat-id="">loading...</button>
-        </div>
-        <div class="history-panel">
-          <p id="history-title" class="history-title">Previous questions</p>
-          <div id="question-history" class="question-history" role="log" aria-live="polite"></div>
-          <button type="button" id="history-more" class="history-more" hidden>SHOW 5 MORE</button>
-        </div>
-      </aside>
-
-      <section class="main-column">
-        <header class="top-strip">
-          <p id="console-title" class="console-title">ANALYTICAL AGENT</p>
-          <div class="toolbar-stack">
-            <div class="toolbar-controls">
-              <div id="language-toggle" class="language-toggle" role="group" aria-label="Language selector">
-                <button type="button" class="select-pill language-pill active" data-language="pt">PT</button>
-                <button type="button" class="select-pill language-pill" data-language="en">EN</button>
-                <button type="button" class="select-pill language-pill" data-language="es">ES</button>
-              </div>
-              <button type="button" id="theme-toggle" class="theme-toggle">THEME: DARK</button>
-            </div>
-            <div class="session-meta">
-              <p id="session-user" class="session-user">-</p>
-              <p id="session-status" class="status-chip">Checking session...</p>
-              <button type="button" id="logout-button" class="action-pill">Logout</button>
-            </div>
+    <section class="workspace-shell">
+      <section class="console-frame">
+        <aside class="chat-rail">
+          <div class="rail-header">
+            <span class="rail-dot"></span>
+            <p id="rail-title">Chats</p>
           </div>
-        </header>
-
-        <section class="display-stack">
-          <article class="display-box question-box">
-            <span id="question-label" class="box-label">&lt;QUESTION&gt;</span>
-            <p id="question-view" class="box-content box-placeholder">Your question will appear here.</p>
-          </article>
-
-          <article class="display-box response-box">
-            <span id="response-label" class="box-label">&lt;RESPOSTA&gt;</span>
-            <div id="response-view" class="box-content box-scroll box-placeholder">The natural language response will appear here.</div>
-          </article>
-
-          <article class="display-box sql-box">
-            <span id="sql-label" class="box-label">&lt;SQL&gt;</span>
-            <pre id="sql-view" class="box-content box-scroll box-placeholder">Generated SQL will appear here.</pre>
-          </article>
-
-          <article class="display-box graphic-box">
-            <span id="data-label" class="box-label">&lt;DADOS&gt;</span>
-            <pre id="graphic-view" class="box-content box-scroll box-placeholder">Saved data will appear here.</pre>
-          </article>
-        </section>
-
-        <section class="control-grid">
-          <div class="button-grid" id="context-selector" role="group" aria-label="Context selector">
-            <button type="button" class="select-pill active" data-context="TRAVEL">TRAVEL</button>
-            <button type="button" class="select-pill" data-context="EXPENSE">EXPENSE</button>
-            <button type="button" class="select-pill" data-context="SERVICE">SERVICE</button>
-            <button type="button" class="select-pill" data-context="COMMERCIAL">COMMERCIAL</button>
-            <button type="button" class="select-pill" data-context="CS">CS</button>
-            <button type="button" class="select-pill" data-context="OTHERS">OTHERS</button>
+          <div class="chat-list" role="list" aria-label="Current chat">
+            <button type="button" id="chat-pill" class="chat-pill active" data-chat-id="">loading...</button>
           </div>
+          <div class="history-panel">
+            <p id="history-title" class="history-title">Previous questions</p>
+            <div id="question-history" class="question-history" role="log" aria-live="polite"></div>
+            <button type="button" id="history-more" class="history-more" hidden>SHOW 5 MORE</button>
+          </div>
+        </aside>
 
-          <form id="agent-form" class="composer-panel">
-            <input type="hidden" name="email" value="">
-            <input type="hidden" name="chat_id" value="">
-            <input type="hidden" name="question_id" value="">
-            <input type="hidden" name="question_context" value="TRAVEL">
-            <input type="hidden" name="response_type" value="TEXT">
-
-            <label id="composer-label" class="composer-label" for="question-input">FACA SUA PERGUNTA AQUI</label>
-            <textarea id="question-input" name="question" rows="4" placeholder="Digite sua pergunta..." required></textarea>
-
-            <div class="composer-actions">
-              <div class="button-row" id="response-selector" role="group" aria-label="Response type selector">
-                <button type="button" class="select-pill active" data-response-type="TEXT">TEXT</button>
-                <button type="button" class="select-pill" data-response-type="SQL">SQL</button>
-                <button type="button" id="data-response-button" class="select-pill" data-response-type="GRAPHIC">DADOS</button>
+        <section class="main-column">
+          <header class="top-strip">
+            <p id="console-title" class="console-title">ANALYTICAL AGENT</p>
+            <div class="toolbar-stack">
+              <div class="toolbar-controls">
+                <div id="language-toggle" class="language-toggle" role="group" aria-label="Language selector">
+                  <button type="button" class="select-pill language-pill active" data-language="pt">PT</button>
+                  <button type="button" class="select-pill language-pill" data-language="en">EN</button>
+                  <button type="button" class="select-pill language-pill" data-language="es">ES</button>
+                </div>
+                <button type="button" id="theme-toggle" class="theme-toggle">THEME: DARK</button>
               </div>
-              <button type="submit" id="submit-button" class="submit-button">ENVIAR</button>
+              <div class="session-meta">
+                <p id="session-user" class="session-user">-</p>
+                <p id="session-status" class="status-chip">Checking session...</p>
+                <button type="button" id="logout-button" class="action-pill">Logout</button>
+              </div>
+            </div>
+          </header>
+
+          <section class="display-stack">
+            <article class="display-box question-box">
+              <span id="question-label" class="box-label">&lt;QUESTION&gt;</span>
+              <p id="question-view" class="box-content box-placeholder">Your question will appear here.</p>
+            </article>
+
+            <article class="display-box response-box">
+              <span id="response-label" class="box-label">&lt;RESPOSTA&gt;</span>
+              <div id="response-view" class="box-content box-scroll box-placeholder">The natural language response will appear here.</div>
+            </article>
+
+            <article class="display-box sql-box">
+              <span id="sql-label" class="box-label">&lt;SQL&gt;</span>
+              <pre id="sql-view" class="box-content box-scroll box-placeholder">Generated SQL will appear here.</pre>
+            </article>
+
+            <article class="display-box data-box">
+              <span id="data-label" class="box-label">&lt;DADOS&gt;</span>
+              <div id="data-view" class="box-content box-scroll box-placeholder">Saved data will appear here.</div>
+            </article>
+
+            <article class="display-box graph-box">
+              <span id="graph-label" class="box-label">&lt;GRAPH&gt;</span>
+              <div id="graph-controls" class="graph-controls">
+                <div id="graph-suggestions" class="graph-suggestions" hidden></div>
+                <a id="graph-download" class="history-more graph-download" href="#" download hidden>DOWNLOAD GRAPH</a>
+              </div>
+              <p id="graph-status" class="status-line"></p>
+              <div id="graph-view" class="box-content box-scroll box-placeholder graphic-content">Generated graph will appear here.</div>
+            </article>
+          </section>
+
+          <section class="control-grid">
+            <div class="button-grid" id="context-selector" role="group" aria-label="Context selector">
+              <button type="button" class="select-pill active" data-context="TRAVEL">TRAVEL</button>
+              <button type="button" class="select-pill" data-context="EXPENSE">EXPENSE</button>
+              <button type="button" class="select-pill" data-context="SERVICE">SERVICE</button>
+              <button type="button" class="select-pill" data-context="COMMERCIAL">COMMERCIAL</button>
+              <button type="button" class="select-pill" data-context="CS">CS</button>
+              <button type="button" class="select-pill" data-context="OTHERS">OTHERS</button>
             </div>
 
-            <p id="agent-status" class="status-line"></p>
-          </form>
+            <form id="agent-form" class="composer-panel">
+              <input type="hidden" name="email" value="">
+              <input type="hidden" name="chat_id" value="">
+              <input type="hidden" name="question_id" value="">
+              <input type="hidden" name="question_context" value="TRAVEL">
+
+              <label id="composer-label" class="composer-label" for="question-input">FACA SUA PERGUNTA AQUI</label>
+              <textarea id="question-input" name="question" rows="4" placeholder="Digite sua pergunta..." required></textarea>
+
+              <div class="composer-actions">
+                <div class="button-row" id="response-selector" role="group" aria-label="Response type selector">
+                  <button type="button" class="select-pill active" data-response-type="TEXT" aria-pressed="true">TEXT</button>
+                  <button type="button" class="select-pill active" data-response-type="SQL" aria-pressed="true">SQL</button>
+                  <button type="button" id="data-response-button" class="select-pill" data-response-type="GRAPH" aria-pressed="false">GRAPH</button>
+                </div>
+                <button type="submit" id="submit-button" class="submit-button">ENVIAR</button>
+              </div>
+
+              <p id="agent-status" class="status-line"></p>
+            </form>
+          </section>
         </section>
       </section>
+
+      <aside id="runtime-panel" class="runtime-panel" hidden>
+        <div class="runtime-header">
+          <span class="rail-dot"></span>
+          <p id="runtime-title" class="history-title">Runtime logs</p>
+        </div>
+        <p id="runtime-status" class="status-line">Waiting for session...</p>
+        <div class="runtime-actions">
+          <button type="button" id="runtime-more" class="history-more">SHOW MORE LOGS</button>
+        </div>
+        <div id="runtime-log-view" class="runtime-log-view" role="log" aria-live="polite">Runtime logs will appear here.</div>
+      </aside>
     </section>
   </main>
 
-  <script src="/assets/app.js"></script>
+  <script src="/assets/app.js?v=20260302b"></script>
 </body>
 </html>
