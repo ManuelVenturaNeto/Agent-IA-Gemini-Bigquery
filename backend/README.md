@@ -36,7 +36,7 @@ STORAGE_BUCKET=agent_analytical
 APP_HOST=127.0.0.1
 APP_PORT=8000
 APP_LOGIN_PASSWORD=your_shared_login_password
-PRIVILEGED_LOG_VIEWER_EMAILS=manuueelneto@gmail.com,user@example.com
+PRIVILEGED_LOG_VIEWER_EMAILS=user@example.com,user@example.com
 ```
 
 ## Local Setup

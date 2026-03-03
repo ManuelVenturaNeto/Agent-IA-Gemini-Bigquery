@@ -86,7 +86,7 @@ class AuthService(LoggedComponent):
         """Read the privileged log-viewer emails from the environment."""
         raw_value = os.getenv(
             "PRIVILEGED_LOG_VIEWER_EMAILS",
-            "manuueelneto@gmail.com,user@example.com",
+            "user@example.com",
         )
         email_list = set()
 

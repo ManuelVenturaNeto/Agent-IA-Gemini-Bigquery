@@ -86,7 +86,7 @@ SELECT
     1001 + MOD(base.id - 1, 8) AS company_id
 FROM base
 UNION ALL
-SELECT 6666, 'Manuel Ventura', 'manuueelneto@gmail.com', 1;
+SELECT 6666, 'Manuel Ventura', 'user@example.com', 1;
 
 -- =========================================================
 -- 2) TABLE: AIR_TICKETS
