@@ -2,7 +2,11 @@ import logging
 from pathlib import Path
 
 
+LOG_FORMAT = "%(asctime)s %(name)s %(levelname)s, %(message)s"
+
+
 def configure_file_logging(log_path: str = "./pipeline_logs.log") -> None:
+    """Ensure the root logger writes DEBUG logs to the log file and terminal."""
     root_logger = logging.getLogger()
     target_path = Path(log_path).resolve()
 
@@ -12,16 +16,26 @@ def configure_file_logging(log_path: str = "./pipeline_logs.log") -> None:
 
         base_filename = getattr(handler, "baseFilename", "")
         if base_filename and Path(base_filename).resolve() == target_path:
-            if root_logger.level == logging.NOTSET or root_logger.level > logging.DEBUG:
-                root_logger.setLevel(logging.DEBUG)
-            return
+            break
+    else:
+        file_handler = logging.FileHandler(target_path, encoding="utf-8")
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+        root_logger.addHandler(file_handler)
 
-    file_handler = logging.FileHandler(target_path, encoding="utf-8")
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(
-        logging.Formatter("%(asctime)s %(name)s %(levelname)s, %(message)s")
-    )
-    root_logger.addHandler(file_handler)
+    for handler in root_logger.handlers:
+        if isinstance(handler, logging.FileHandler):
+            continue
+
+        if isinstance(handler, logging.StreamHandler):
+            handler.setLevel(logging.DEBUG)
+            handler.setFormatter(logging.Formatter(LOG_FORMAT))
+            break
+    else:
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.DEBUG)
+        console_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+        root_logger.addHandler(console_handler)
 
     if root_logger.level == logging.NOTSET or root_logger.level > logging.DEBUG:
         root_logger.setLevel(logging.DEBUG)

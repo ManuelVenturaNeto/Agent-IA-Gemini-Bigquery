@@ -15,9 +15,10 @@ class AppModuleTests(unittest.TestCase):
         paths = {route.path for route in app.routes}
 
         self.assertIn("/assets", paths)
-        self.assertIn("/storage", paths)
         self.assertIn("/v1/login", paths)
         self.assertIn("/v1/session", paths)
         self.assertIn("/v1/ask", paths)
         self.assertIn("/v1/graph", paths)
         self.assertIn("/v1/runtime-logs", paths)
+        self.assertIn("/v1/storage/data/{chat_id}/{message_id}", paths)
+        self.assertIn("/v1/storage/graph/{chat_id}/{message_id}", paths)

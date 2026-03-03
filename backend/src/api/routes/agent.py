@@ -9,13 +9,14 @@ from src.agents.graph_agent import GraphAgent
 from src.api.auth import validate_token
 from src.api.config import api_audit
 from src.api.config import chat_store_manager
+from src.api.config import storage_manager
 from src.api.models import GraphRequest
 from src.api.models import ModelRequest
 from src.main.main import OrchestrateAgent
 
 
 router = APIRouter(tags=["Agent"])
-graph_agent = GraphAgent(chat_store_manager.storage_dir)
+graph_agent = GraphAgent(storage_manager)
 
 
 class AgentRouteHandler:
@@ -192,6 +193,7 @@ class AgentRouteHandler:
             graph_path = graph_agent.render_graph(
                 response_data=response_data,
                 graph_pattern=selected_graph,
+                user_email=user_email,
                 chat_id=request.chat_id,
                 question_id=request.question_id,
             )

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from src.api.chat_store import ChatStoreManager
+from src.infra.config.config_google.storage_manager import StorageManager
 from src.infra.logging_utils import LoggedComponent, configure_file_logging
 
 
@@ -17,5 +18,7 @@ class ApiAuditService(LoggedComponent):
     def __init__(self) -> None:
         super().__init__()
 
-chat_store_manager = ChatStoreManager(backend_root)
+
+storage_manager = StorageManager()
+chat_store_manager = ChatStoreManager(backend_root, storage_manager=storage_manager)
 api_audit = ApiAuditService()

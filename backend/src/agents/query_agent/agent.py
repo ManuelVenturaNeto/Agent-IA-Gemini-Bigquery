@@ -1,10 +1,26 @@
+import re
 from typing import Optional
+
 from src.agents.base import BaseAgent
 
 from .tool_kit import build_query_toolkit, validate_sql_rules
 
 
 class QueryAgent(BaseAgent):
+    _IDENTIFIER_PATTERNS = (
+        re.compile(
+            r"\b(?:eu\s+sou(?:\s+o)?|i\s+am|i'm|my|meu|minha)?\s*"
+            r"(?:user|usuario|usuário|company|empresa)\s+id\s*"
+            r"(?:=|:|is|e|é)?\s*[a-z0-9_-]+\b",
+            flags=re.IGNORECASE,
+        ),
+        re.compile(
+            r"\b(?:email|e-mail)\s*(?:=|:|is|e|é)?\s*"
+            r"[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b",
+            flags=re.IGNORECASE,
+        ),
+    )
+
     def __init__(self) -> None:
         super().__init__()
         self._chain = build_query_toolkit(self.llm)
@@ -19,6 +35,7 @@ class QueryAgent(BaseAgent):
         retry_reason: Optional[str] = None,
         previous_sql: Optional[str] = None,
     ) -> str:
+        sanitized_question = self._sanitize_question_text(question_text)
         feedback = self._build_feedback(
             retry_reason=retry_reason,
             previous_sql=previous_sql,
@@ -30,7 +47,7 @@ class QueryAgent(BaseAgent):
                 self._chain.invoke(
                     {
                         "schemas": str(tables_and_schemas),
-                        "input": question_text,
+                        "input": sanitized_question,
                         "feedback": feedback,
                     }
                 )
@@ -66,6 +83,17 @@ class QueryAgent(BaseAgent):
         raise ValueError(
             f"Unable to generate valid SQL after 3 attempts. {last_validation}"
         )
+
+    def _sanitize_question_text(self, question_text: str) -> str:
+        """Remove user-typed identifiers so self-service SQL relies on auth context."""
+        sanitized_question = str(question_text or "")
+        for pattern in self._IDENTIFIER_PATTERNS:
+            sanitized_question = pattern.sub("", sanitized_question)
+
+        sanitized_question = re.sub(r"\s+", " ", sanitized_question)
+        sanitized_question = re.sub(r"\s+([,.;:!?])", r"\1", sanitized_question)
+        sanitized_question = sanitized_question.strip(" ,.;:!?")
+        return sanitized_question or str(question_text or "").strip()
 
     def _build_feedback(
         self,

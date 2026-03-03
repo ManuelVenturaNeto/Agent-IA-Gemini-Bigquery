@@ -14,11 +14,12 @@ class BigQueryManagerExecuteQueryTests(unittest.TestCase):
         manager = BigQueryManager.__new__(BigQueryManager)
         manager.project_id = "test-project"
         manager.bq_client = Mock()
+        manager.log_debug = Mock()
         manager.log_info = Mock()
         manager.log_error = Mock()
 
         query_job = Mock()
-        query_job.result.return_value = [{"id_empresa": 1}]
+        query_job.result.return_value = [{"company_id": 1}]
         manager.bq_client.query.return_value = query_job
 
         with patch(
@@ -29,7 +30,7 @@ class BigQueryManagerExecuteQueryTests(unittest.TestCase):
             return_value="email-param",
         ) as scalar_parameter:
             result = manager.execute_query(
-                response_sql="SELECT id_empresa FROM test",
+                response_sql="SELECT company_id FROM test",
                 user_email="o'hara@example.com",
                 chat_id="chat-1",
                 question_id="question-1",
@@ -37,8 +38,10 @@ class BigQueryManagerExecuteQueryTests(unittest.TestCase):
 
         executed_sql = manager.bq_client.query.call_args.args[0]
         self.assertIn("@user_email", executed_sql)
+        self.assertIn("test_ia.users", executed_sql)
+        self.assertIn("WHERE company_id IN", executed_sql)
         self.assertNotIn("o'hara@example.com", executed_sql)
-        self.assertEqual(result, [{"id_empresa": 1}])
+        self.assertEqual(result, [{"company_id": 1}])
 
         scalar_parameter.assert_called_once_with(
             "user_email",

@@ -21,7 +21,7 @@ class QueryAgentGenerateSqlTests(unittest.TestCase):
         agent = self._build_agent()
         agent._chain.invoke.side_effect = [
             "SELECT * FROM test",
-            "SELECT id_empresa FROM test",
+            "SELECT company_id FROM test",
         ]
 
         sql = agent.generate_sql(
@@ -29,10 +29,10 @@ class QueryAgentGenerateSqlTests(unittest.TestCase):
             user_email="user@example.com",
             chat_id="chat-1",
             question_id="question-1",
-            tables_and_schemas={"test": {"id_empresa": "INTEGER"}},
+            tables_and_schemas={"test": {"company_id": "INTEGER"}},
         )
 
-        self.assertEqual(sql, "SELECT id_empresa FROM test")
+        self.assertEqual(sql, "SELECT company_id FROM test")
         self.assertEqual(agent._chain.invoke.call_count, 2)
         agent.log_info.assert_called_once()
 
@@ -51,7 +51,7 @@ class QueryAgentGenerateSqlTests(unittest.TestCase):
                 user_email="user@example.com",
                 chat_id="chat-1",
                 question_id="question-1",
-                tables_and_schemas={"test": {"id_empresa": "INTEGER"}},
+                tables_and_schemas={"test": {"company_id": "INTEGER"}},
             )
 
         self.assertEqual(agent._chain.invoke.call_count, 3)
@@ -60,20 +60,40 @@ class QueryAgentGenerateSqlTests(unittest.TestCase):
     def test_uses_retry_reason_feedback_for_regeneration(self) -> None:
         """It sends the previous SQL and retry reason back into the LLM."""
         agent = self._build_agent()
-        agent._chain.invoke.return_value = "SELECT id_empresa FROM test"
+        agent._chain.invoke.return_value = "SELECT company_id FROM test"
 
         sql = agent.generate_sql(
             question_text="Show expenses",
             user_email="user@example.com",
             chat_id="chat-1",
             question_id="question-1",
-            tables_and_schemas={"test": {"id_empresa": "INTEGER"}},
+            tables_and_schemas={"test": {"company_id": "INTEGER"}},
             retry_reason="Database execution error: Syntax error near FROM",
-            previous_sql="SELECT id_empresa, FROM test",
+            previous_sql="SELECT company_id, FROM test",
         )
 
-        self.assertEqual(sql, "SELECT id_empresa FROM test")
+        self.assertEqual(sql, "SELECT company_id FROM test")
         self.assertEqual(agent._chain.invoke.call_count, 1)
         feedback = agent._chain.invoke.call_args.args[0]["feedback"]
         self.assertIn("Database execution error: Syntax error near FROM", feedback)
-        self.assertIn("SELECT id_empresa, FROM test", feedback)
+        self.assertIn("SELECT company_id, FROM test", feedback)
+
+    def test_strips_literal_identifiers_before_prompting_the_llm(self) -> None:
+        """It removes user-typed ids so the LLM relies on authenticated context."""
+        agent = self._build_agent()
+        agent._chain.invoke.return_value = "SELECT company_id FROM test"
+
+        sql = agent.generate_sql(
+            question_text="me mostre todas as passagens que eu comprei. eu sou o user id = 1",
+            user_email="user@example.com",
+            chat_id="chat-1",
+            question_id="question-1",
+            tables_and_schemas={"test": {"company_id": "INTEGER"}},
+        )
+
+        self.assertEqual(sql, "SELECT company_id FROM test")
+        prompt_input = agent._chain.invoke.call_args.args[0]["input"]
+        self.assertEqual(
+            prompt_input,
+            "me mostre todas as passagens que eu comprei",
+        )

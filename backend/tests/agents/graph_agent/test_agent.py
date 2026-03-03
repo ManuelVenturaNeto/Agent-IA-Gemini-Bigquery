@@ -1,6 +1,5 @@
-import tempfile
 import unittest
-from pathlib import Path
+from unittest.mock import Mock
 
 from src.agents.graph_agent.agent import GraphAgent
 
@@ -37,32 +36,31 @@ class GraphAgentTests(unittest.TestCase):
 
     def test_renders_png_graph_to_storage(self) -> None:
         """It renders the selected graph and returns the public storage path."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            agent = GraphAgent(Path(temp_dir))
-            graph_pattern = {
-                "id": "bar_vertical",
-                "label": "Bar",
-                "reason": "Compares categories.",
-                "x_field": "month",
-                "y_field": "total",
-                "hue_field": "",
-            }
+        storage_manager = Mock()
+        storage_manager.save_graph_image.return_value = "/v1/storage/graph/chat-1/question-1"
+        agent = GraphAgent(storage_manager)
+        graph_pattern = {
+            "id": "bar_vertical",
+            "label": "Bar",
+            "reason": "Compares categories.",
+            "x_field": "month",
+            "y_field": "total",
+            "hue_field": "",
+        }
 
-            graph_path = agent.render_graph(
-                response_data=[
-                    {"month": "2026-01", "total": 10},
-                    {"month": "2026-02", "total": 20},
-                ],
-                graph_pattern=graph_pattern,
-                chat_id="chat-1",
-                question_id="question-1",
-            )
-
-            file_path = Path(temp_dir) / "chat-1" / "graphics" / "question-1" / "graph.png"
-            file_exists = file_path.exists()
+        graph_path = agent.render_graph(
+            response_data=[
+                {"month": "2026-01", "total": 10},
+                {"month": "2026-02", "total": 20},
+            ],
+            graph_pattern=graph_pattern,
+            user_email="user@example.com",
+            chat_id="chat-1",
+            question_id="question-1",
+        )
 
         self.assertEqual(
             graph_path,
-            "/storage/chat-1/graphics/question-1/graph.png",
+            "/v1/storage/graph/chat-1/question-1",
         )
-        self.assertTrue(file_exists)
+        storage_manager.save_graph_image.assert_called_once()

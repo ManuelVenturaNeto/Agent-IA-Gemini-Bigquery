@@ -63,6 +63,11 @@ body {
   overflow: hidden;
 }
 
+#app-root,
+#login-root {
+  min-height: 100vh;
+}
+
 button,
 input,
 textarea {

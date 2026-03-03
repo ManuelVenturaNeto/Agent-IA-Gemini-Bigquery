@@ -49,20 +49,14 @@ PROJECT_SA=<YOUR SERVICE ACCOUNT KEY FROM GCP>
 
 ```sql
 -- Schema Creation
-CREATE SCHEMA IF NOT EXISTS `test_ia`
-OPTIONS (location = "us-central1");
-
--- =========================================================
--- 1) TABELA: USUARIOS
--- =========================================================
-CREATE OR REPLACE TABLE `test_ia.usuarios` (
+CREATE OR REPLACE TABLE `test_ia.users` (
     id INT64,
-    nome STRING,
+    name STRING,
     email STRING,
-    id_empresa INT64
+    company_id INT64
 );
 
-INSERT INTO `test_ia.usuarios` (id, nome, email, id_empresa)
+INSERT INTO `test_ia.users` (id, name, email, company_id)
 WITH first_names AS (
     SELECT ARRAY<STRING>[
         'Ana','Bruno','Carla','Daniel','Eduardo','Fernanda','Gabriel','Helena','Igor','Juliana',
@@ -77,153 +71,140 @@ last_names AS (
       'Silva','Souza','Oliveira','Santos','Pereira','Lima','Carvalho','Ribeiro','Almeida','Gomes',
       'Martins','Ferreira','Rodrigues','Barbosa','Teixeira','Moura','Araujo','Monteiro'
     ] AS arr
-)
-,
+),
 base AS (
-    SELECT 
-        id 
-    FROM UNNEST(GENERATE_ARRAY(1, 50)) AS id
+    SELECT id FROM UNNEST(GENERATE_ARRAY(1, 50)) AS id
 )
 SELECT
     base.id,
     CONCAT(
         (SELECT arr[OFFSET(MOD(base.id - 1, ARRAY_LENGTH(arr)))] FROM first_names),
         ' ',
-        (SELECT arr[OFFSET(MOD(base.id * 3, ARRAY_LENGTH(arr)))] FROM last_names)) AS nome,
-    FORMAT('user%03d@empresa.com', base.id) AS email,
-    1001 + MOD(base.id - 1, 8) AS id_empresa
+        (SELECT arr[OFFSET(MOD(base.id * 3, ARRAY_LENGTH(arr)))] FROM last_names)
+    ) AS name,
+    FORMAT('user%03d@company.com', base.id) AS email,
+    1001 + MOD(base.id - 1, 8) AS company_id
 FROM base
 UNION ALL
 SELECT 6666, 'Manuel Ventura', 'manuueelneto@gmail.com', 1;
 
 -- =========================================================
--- 2) TABELA: PASSAGENS_AEREAS
+-- 2) TABLE: AIR_TICKETS
 -- =========================================================
-CREATE OR REPLACE TABLE `test_ia.passagens_aereas` (
+CREATE OR REPLACE TABLE `test_ia.air_tickets` (
     id INT64,
-    protocolo STRING,
-    id_empresa INT64,
-    data_ida DATE,
-    data_volta DATE,
-    preco_ida NUMERIC,
-    preco_volta NUMERIC
+    ticket STRING,
+    company_id INT64,
+    departure_date DATE,
+    arrival_date DATE,
+    departure_amount NUMERIC,
+    arrival_amount NUMERIC
 );
 
-INSERT INTO `test_ia.passagens_aereas`
-    (id, protocolo, id_empresa, data_ida, data_volta, preco_ida, preco_volta)
+INSERT INTO `test_ia.air_tickets`
+    (id, ticket, company_id, departure_date, arrival_date, departure_amount, arrival_amount)
 WITH base AS (
-    SELECT 
-        id 
-    FROM UNNEST(GENERATE_ARRAY(1, 200)) AS id
+    SELECT id FROM UNNEST(GENERATE_ARRAY(1, 200)) AS id
 ),
-datas AS (
+dates AS (
     SELECT 
         id, 
-        DATE_ADD(DATE '2026-01-01', INTERVAL id DAY) AS data_ida
+        DATE_ADD(DATE '2026-01-01', INTERVAL id DAY) AS departure_date
     FROM base
 )
 SELECT
-    datas.id,
-    FORMAT('CODE-%s-%06d', FORMAT_DATE('%Y%m', datas.data_ida), datas.id) AS protocolo,
-    1001 + MOD(datas.id - 1, 8) AS id_empresa,
-    datas.data_ida AS data_ida,
-    DATE_ADD(datas.data_ida, INTERVAL (2 + MOD(datas.id, 14)) DAY) AS data_volta,
-    (CAST(150 + MOD(datas.id * 97, 2200) AS NUMERIC) + (CAST(MOD(datas.id * 13, 100) AS NUMERIC) / 100)) AS preco_ida,
-    (CAST(150 + MOD(datas.id * 131, 2400) AS NUMERIC) + (CAST(MOD(datas.id * 29, 100) AS NUMERIC) / 100)) AS preco_volta
-FROM datas
+    dates.id,
+    FORMAT('CODE-%s-%06d', FORMAT_DATE('%Y%m', dates.departure_date), dates.id) AS ticket,
+    1001 + MOD(dates.id - 1, 8) AS company_id,
+    dates.departure_date,
+    DATE_ADD(dates.departure_date, INTERVAL (2 + MOD(dates.id, 14)) DAY) AS arrival_date,
+    (CAST(150 + MOD(dates.id * 97, 2200) AS NUMERIC)
+        + (CAST(MOD(dates.id * 13, 100) AS NUMERIC) / 100)) AS departure_amount,
+    (CAST(150 + MOD(dates.id * 131, 2400) AS NUMERIC)
+        + (CAST(MOD(dates.id * 29, 100) AS NUMERIC) / 100)) AS arrival_amount
+FROM dates
 UNION ALL
 SELECT 666, 'CODE-202602-000666', 1, DATE '2025-12-31', DATE '2026-12-31', 666.66, 1001.00;
 
 -- =========================================================
--- 3) TABELA: EMPRESAS
+-- 3) TABLE: COMPANIES
 -- =========================================================
-CREATE OR REPLACE TABLE `test_ia.empresas` (
-  id_empresa INT64,
-  nome_empresa STRING,
-  hash_empresa STRING
+CREATE OR REPLACE TABLE `test_ia.companies` (
+  company_id INT64,
+  company_name STRING,
+  company_hash STRING
 );
 
--- Exemplo de grupos de "dono":
--- dono_a: empresas 1001 e 1002 (mesmo hash)
--- dono_b: empresa 1003
--- dono_c: empresas 1004, 1005, 1006 (mesmo hash)
--- dono_d: empresas 1007, 1008 (mesmo hash)
--- dono_manual: empresa 1
-INSERT INTO `test_ia.empresas` (id_empresa, nome_empresa, hash_empresa)
-SELECT 1,    'Empresa Manuel', TO_HEX(SHA256(CAST('dono_manual' AS BYTES))) UNION ALL
-SELECT 1001, 'Empresa 1001',   TO_HEX(SHA256(CAST('dono_a' AS BYTES)))      UNION ALL
-SELECT 1002, 'Empresa 1002',   TO_HEX(SHA256(CAST('dono_a' AS BYTES)))      UNION ALL
-SELECT 1003, 'Empresa 1003',   TO_HEX(SHA256(CAST('dono_b' AS BYTES)))      UNION ALL
-SELECT 1004, 'Empresa 1004',   TO_HEX(SHA256(CAST('dono_c' AS BYTES)))      UNION ALL
-SELECT 1005, 'Empresa 1005',   TO_HEX(SHA256(CAST('dono_c' AS BYTES)))      UNION ALL
-SELECT 1006, 'Empresa 1006',   TO_HEX(SHA256(CAST('dono_c' AS BYTES)))      UNION ALL
-SELECT 1007, 'Empresa 1007',   TO_HEX(SHA256(CAST('dono_d' AS BYTES)))      UNION ALL
-SELECT 1008, 'Empresa 1008',   TO_HEX(SHA256(CAST('dono_d' AS BYTES)));
+INSERT INTO `test_ia.companies` (company_id, company_name, company_hash)
+SELECT 1,    'Manuel Company', TO_HEX(SHA256(CAST('owner_manual' AS BYTES))) UNION ALL
+SELECT 1001, 'Company 1001',   TO_HEX(SHA256(CAST('owner_a' AS BYTES)))      UNION ALL
+SELECT 1002, 'Company 1002',   TO_HEX(SHA256(CAST('owner_a' AS BYTES)))      UNION ALL
+SELECT 1003, 'Company 1003',   TO_HEX(SHA256(CAST('owner_b' AS BYTES)))      UNION ALL
+SELECT 1004, 'Company 1004',   TO_HEX(SHA256(CAST('owner_c' AS BYTES)))      UNION ALL
+SELECT 1005, 'Company 1005',   TO_HEX(SHA256(CAST('owner_c' AS BYTES)))      UNION ALL
+SELECT 1006, 'Company 1006',   TO_HEX(SHA256(CAST('owner_c' AS BYTES)))      UNION ALL
+SELECT 1007, 'Company 1007',   TO_HEX(SHA256(CAST('owner_d' AS BYTES)))      UNION ALL
+SELECT 1008, 'Company 1008',   TO_HEX(SHA256(CAST('owner_d' AS BYTES)));
 
 -- =========================================================
--- 4) TABELA: DESPESAS
+-- 4) TABLE: EXPENSES
 -- =========================================================
-CREATE OR REPLACE TABLE `test_ia.despesas` (
+CREATE OR REPLACE TABLE `test_ia.expenses` (
   id INT64,
-  id_usuario INT64,
-  id_empresa INT64,
-  data_despesa DATE,
-  categoria STRING,
-  descricao STRING,
-  valor NUMERIC,
+  user_id INT64,
+  company_id INT64,
+  expense_date DATE,
+  category STRING,
+  description STRING,
+  amount NUMERIC,
   status STRING,
-  protocolo STRING
+  ticket STRING
 );
 
-
-INSERT INTO `test_ia.despesas`
-    (id, id_usuario, id_empresa, data_despesa, categoria, descricao, valor, status, protocolo)
-WITH categorias AS (
+INSERT INTO `test_ia.expenses`
+    (id, user_id, company_id, expense_date, category, description, amount, status, ticket)
+WITH categories AS (
     SELECT ARRAY<STRING>[
-        'Alimentação',
+        'Food',
         'Gasoline',
-        'Hospedagem',
-        'Transporte',
-        'Passagem Aérea',
+        'Hotel',
+        'Transport',
+        'Air Ticket',
         'Uber',
-        'Reembolso',
+        'Reimbursement'
     ] AS arr
-)
-,
+),
 status_arr AS (
-    SELECT ARRAY<STRING>['APROVADA','PENDENTE','REPROVADA'] AS arr
-)
-,
+    SELECT ARRAY<STRING>['APPROVED','PENDING','REJECTED'] AS arr
+),
 base AS (
-    SELECT 
-        id 
-    FROM UNNEST(GENERATE_ARRAY(1, 500)) AS id
-)
-,
+    SELECT id FROM UNNEST(GENERATE_ARRAY(1, 500)) AS id
+),
 base_enriched AS (
     SELECT
-        base.id AS id,
-        CASE WHEN MOD(base.id, 40) = 0 THEN 6666 ELSE (1 + MOD(base.id - 1, 50)) END AS id_usuario,
-        CASE WHEN MOD(base.id, 40) = 0 THEN 1    ELSE (1001 + MOD(base.id - 1, 8)) END AS id_empresa,
-        DATE_ADD(DATE '2026-01-01', INTERVAL MOD(base.id * 7, 180) DAY) AS data_despesa,
-        (SELECT arr[OFFSET(MOD(base.id - 1, ARRAY_LENGTH(arr)))] FROM categorias) AS categoria,
+        base.id,
+        CASE WHEN MOD(base.id, 40) = 0 THEN 6666 ELSE (1 + MOD(base.id - 1, 50)) END AS user_id,
+        CASE WHEN MOD(base.id, 40) = 0 THEN 1 ELSE (1001 + MOD(base.id - 1, 8)) END AS company_id,
+        DATE_ADD(DATE '2026-01-01', INTERVAL MOD(base.id * 7, 180) DAY) AS expense_date,
+        (SELECT arr[OFFSET(MOD(base.id - 1, ARRAY_LENGTH(arr)))] FROM categories) AS category,
         (SELECT arr[OFFSET(MOD(base.id - 1, ARRAY_LENGTH(arr)))] FROM status_arr) AS status
     FROM base
 )
 SELECT
     be.id,
-    be.id_usuario,
-    be.id_empresa,
-    be.data_despesa,
-    be.categoria,
-    CONCAT('Despesa ', be.categoria, ' #', CAST(be.id AS STRING)) AS descricao,
-    (CAST(20 + MOD(be.id * 37, 1500) AS NUMERIC) + (CAST(MOD(be.id * 19, 100) AS NUMERIC) / 100)) AS valor,
+    be.user_id,
+    be.company_id,
+    be.expense_date,
+    be.category,
+    CONCAT('Expense ', be.category, ' #', CAST(be.id AS STRING)) AS description,
+    (CAST(20 + MOD(be.id * 37, 1500) AS NUMERIC)
+        + (CAST(MOD(be.id * 19, 100) AS NUMERIC) / 100)) AS amount,
     be.status,
-    IF(be.categoria = 'Passagem Aérea', pa.protocolo, NULL) AS protocolo
+    IF(be.category = 'Air Ticket', ati.ticket, NULL) AS ticket
 FROM base_enriched be
-LEFT JOIN `test_ia.passagens_aereas` pa
-    ON pa.id = 1 + MOD(be.id - 1, 200)
-    AND pa.id_empresa = be.id_empresa
+LEFT JOIN `test_ia.air_tickets` ati
+    ON ati.id = 1 + MOD(be.id - 1, 200)
+    AND ati.company_id = be.company_id
 
 UNION ALL
 
@@ -232,10 +213,10 @@ SELECT
     6666,
     1,
     DATE '2026-01-15',
-    'Alimentação',
-    'Jantar com cliente',
+    'Food',
+    'Dinner with client',
     189.90,
-    'APROVADA',
+    'APPROVED',
     NULL
 ;
 ```

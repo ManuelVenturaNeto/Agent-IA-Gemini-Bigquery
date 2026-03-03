@@ -28,14 +28,16 @@ class ResponseType(str, Enum):
 
 
 class TableList(Enum):
-    TRAVEL = ["test_ia.passagens_aereas"]
-    EXPENSE = ["test_ia.despesas"]
-    COMMERCIAL = []
-    SERVICE = []
+    TRAVEL = ["test_ia.air_tickets"]
+    EXPENSE = ["test_ia.expenses"]
+    COMMERCIAL = ["test_ia.companies"]
+    SERVICE = ["test_ia.users"]
 
 
 class QueryResultValidator:
     """Applies lightweight checks before the response agent sees query rows."""
+
+    _ACCESS_SCOPE_COLUMN = "company_id"
 
     _SUMMARY_HINTS = (
         "how much",
@@ -98,7 +100,7 @@ class QueryResultValidator:
 
         if self._contains_only_scope_column(typed_rows):
             return (
-                "Query returned only id_empresa without any analytical metric "
+                "Query returned only company_id without any analytical metric "
                 "or dimension."
             )
 
@@ -114,7 +116,7 @@ class QueryResultValidator:
         """Return True when every row only contains the access-scope column."""
         for row in rows:
             if any(
-                key != "id_empresa" and self._has_meaningful_value(value)
+                key != self._ACCESS_SCOPE_COLUMN and self._has_meaningful_value(value)
                 for key, value in row.items()
             ):
                 return False

@@ -1,11 +1,9 @@
 import os
 import re
 from typing import Dict
-
 from dotenv import load_dotenv
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_google_genai import ChatGoogleGenerativeAI
-
 from src.infra.logging_utils import LoggedComponent
 
 

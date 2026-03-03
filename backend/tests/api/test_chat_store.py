@@ -19,7 +19,7 @@ class ChatStoreManagerTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            manager = ChatStoreManager(base_dir)
+            manager = ChatStoreManager(base_dir, storage_manager=Mock())
             manager.log_debug = Mock()
             manager.log_info = Mock()
             manager.log_warning = Mock()
@@ -32,7 +32,7 @@ class ChatStoreManagerTests(unittest.TestCase):
     def test_updates_existing_message_metadata(self) -> None:
         """It updates graph-related metadata without rewriting the original question."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            manager = ChatStoreManager(Path(temp_dir))
+            manager = ChatStoreManager(Path(temp_dir), storage_manager=Mock())
             manager.log_debug = Mock()
             manager.log_info = Mock()
             manager.log_warning = Mock()
@@ -46,7 +46,7 @@ class ChatStoreManagerTests(unittest.TestCase):
             updated = manager.update_message_metadata(
                 "chat-1",
                 "question-1",
-                graph_path="/storage/chat-1/graphics/question-1/graph.png",
+                graph_path="/v1/storage/graph/chat-1/question-1",
                 selected_graph_pattern="bar_vertical",
                 graph_suggestions=[
                     {
@@ -62,6 +62,6 @@ class ChatStoreManagerTests(unittest.TestCase):
             store = manager.load_chat_store()
 
         self.assertTrue(updated)
-        self.assertEqual(store["mensages"][0]["graph_path"], "/storage/chat-1/graphics/question-1/graph.png")
+        self.assertEqual(store["mensages"][0]["graph_path"], "/v1/storage/graph/chat-1/question-1")
         self.assertEqual(store["mensages"][0]["selected_graph_pattern"], "bar_vertical")
         self.assertEqual(store["mensages"][0]["response_types"], ["TEXT", "SQL"])

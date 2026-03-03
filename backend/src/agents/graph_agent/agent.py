@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from io import BytesIO
 from datetime import date
 from datetime import datetime
-from pathlib import Path
 from typing import Any
 from typing import Optional
 
@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+from src.infra.config.config_google.storage_manager import StorageManager
 from src.infra.logging_utils import LoggedComponent
 
 
@@ -25,9 +26,9 @@ BACKGROUND_COLOR = "#FFFFFF"
 class GraphAgent(LoggedComponent):
     """Build graph suggestions and render selected graphs."""
 
-    def __init__(self, storage_dir: Optional[Path] = None) -> None:
+    def __init__(self, storage_manager: Optional[StorageManager] = None) -> None:
         super().__init__()
-        self._storage_dir = storage_dir
+        self._storage_manager = storage_manager
         sns.set_theme(style="whitegrid")
 
     def suggest_graphs(self, response_data: list[dict[str, Any]]) -> list[dict[str, str]]:
@@ -130,12 +131,13 @@ class GraphAgent(LoggedComponent):
         self,
         response_data: list[dict[str, Any]],
         graph_pattern: dict[str, str],
+        user_email: str,
         chat_id: str,
         question_id: str,
     ) -> str:
         """Render the selected graph and return the public storage path."""
-        if self._storage_dir is None:
-            raise RuntimeError("GraphAgent requires a storage directory to render files.")
+        if self._storage_manager is None:
+            raise RuntimeError("GraphAgent requires a storage manager to render files.")
 
         dataframe = self._build_dataframe(response_data)
         if dataframe is None:
@@ -213,18 +215,21 @@ class GraphAgent(LoggedComponent):
 
         figure.tight_layout()
 
-        target_dir = self._storage_dir / chat_id / "graphics" / question_id
-        target_dir.mkdir(parents=True, exist_ok=True)
-        file_path = target_dir / "graph.png"
+        image_buffer = BytesIO()
         figure.savefig(
-            file_path,
+            image_buffer,
             format="png",
             facecolor=figure.get_facecolor(),
             bbox_inches="tight",
         )
         plt.close(figure)
 
-        return f"/storage/{chat_id}/graphics/{question_id}/{file_path.name}"
+        return self._storage_manager.save_graph_image(
+            user_email=user_email,
+            chat_id=chat_id,
+            message_id=question_id,
+            image_bytes=image_buffer.getvalue(),
+        )
 
     def _build_dataframe(
         self,

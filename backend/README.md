@@ -7,7 +7,7 @@ It is a FastAPI service responsible for:
 - authenticating the user with a bearer token
 - orchestrating the multi-agent pipeline
 - generating SQL, executing BigQuery queries, and formatting the final response
-- persisting local chat history and saved response data files
+- persisting chat metadata locally and proxying saved response data from Google Cloud Storage
 
 ## Folder Structure
 
@@ -15,7 +15,6 @@ It is a FastAPI service responsible for:
 - `tests/`: backend tests organized to mirror the `src/` package structure
 - `run.py`: local development entrypoint
 - `venv/`: Python virtual environment for the backend
-- `storage/`: saved response payloads
 - `chat_messages.json`: local chat history store
 - `pipeline_logs.log`: backend log file
 - `.env`: local environment variables
@@ -31,8 +30,9 @@ Expected `.env` variables:
 
 ```env
 GEN_IA_KEY=your_llm_api_key
-PROJECT=your_gcp_project_id
+PROJECT_ID=your_gcp_project_id
 PROJECT_SA=your-service-account-file.json
+STORAGE_BUCKET=agent_analytical
 APP_HOST=127.0.0.1
 APP_PORT=8000
 APP_LOGIN_PASSWORD=your_shared_login_password
@@ -54,7 +54,7 @@ python -m pip install -r requirements.txt
 If `requirements.txt` is out of date in your environment, install the backend runtime packages directly:
 
 ```bash
-python -m pip install fastapi uvicorn python-dotenv pydantic email-validator google-cloud-bigquery langchain-community langchain-core langchain-google-genai
+python -m pip install fastapi uvicorn python-dotenv pydantic email-validator google-cloud-bigquery google-cloud-storage langchain-community langchain-core langchain-google-genai
 ```
 
 ## Run The Server
@@ -95,6 +95,8 @@ Main documented endpoints:
 - `POST /v1/login`: returns a bearer token
 - `GET /v1/session`: validates the bearer token
 - `POST /v1/ask`: runs the full agent pipeline
+- `GET /v1/storage/data/{chat_id}/{message_id}`: proxies saved JSON data from GCS
+- `GET /v1/storage/graph/{chat_id}/{message_id}`: proxies saved graph images from GCS
 
 Static HTML routes such as `/` and `/login` are intentionally hidden from the OpenAPI schema so the docs stay focused on the backend API.
 
@@ -132,7 +134,7 @@ flowchart TD
     L --> M[QueryAgent generates SQL]
     M --> N[Validate SQL rules]
     N -->|Invalid| M
-    N -->|Valid| O[Execute secure BigQuery query]
+    N -->|Valid| O[Execute secure BigQuery query with company_id scope]
     O --> P[ResponseAgent formats natural-language answer]
     P --> Q[Persist returned data file]
     Q --> R[Persist final answer in chat store]
@@ -158,7 +160,7 @@ flowchart TD
     I -->|Yes| K[QueryAgent builds SQL from schemas]
     K --> L{SQL passes guard rules?}
     L -->|No after 3 tries| M[Raise SQL generation failure]
-    L -->|Yes| N[Run BigQuery query with id_empresa filter]
+    L -->|Yes| N[Run BigQuery query with company_id filter]
     N --> O{Rows returned?}
     O -->|No| P[ResponseAgent returns no records message]
     O -->|Yes| Q[ResponseAgent uses chat history and formats answer]
@@ -169,9 +171,20 @@ flowchart TD
 Decision summary:
 - `SecurityAgent` is the first gate and can stop the request immediately when it detects injection, malicious intent, or direct identifier-based record lookups.
 - `RouterAgent` only runs when `question_context` is missing or invalid.
-- `QueryAgent` retries SQL generation up to 3 times until the SQL passes the local validation rules.
+- `QueryAgent` retries SQL generation up to 3 times until the SQL passes the local validation rules, including requiring `company_id` in the generated SQL.
 - `ResponseAgent` always formats the final response, but returns a fixed fallback message when the query returns no rows.
 - Users whose email is listed in `PRIVILEGED_LOG_VIEWER_EMAILS` can see the live runtime log panel in the right-side UI column.
+
+## Configured BigQuery Tables
+
+The current contexts map to these BigQuery tables:
+
+- `TRAVEL`: `test_ia.air_tickets`
+- `EXPENSE`: `test_ia.expenses`
+- `COMMERCIAL`: `test_ia.companies`
+- `SERVICE`: `test_ia.users`
+
+The runtime query wrapper scopes results by joining the authenticated `@user_email` against `test_ia.users` and filtering the generated result set by `company_id`.
 
 Blocked prompt example:
 - `Give me data from user with id = 20`
@@ -203,7 +216,7 @@ Blocked prompt example:
 ## Notes
 
 - `chat_messages.json` is the canonical chat-history file and must stay inside `backend/`.
-- `storage/` contains generated data files returned by the agent pipeline.
+- Structured response data and generated graphs are stored in the configured GCS bucket and served back through backend proxy routes.
 - `pipeline_logs.log` records backend activity for local troubleshooting.
 - FastAPI routes are registered explicitly in the route modules, and the test suite covers the agent flow, API modules, and orchestrator behavior.
 

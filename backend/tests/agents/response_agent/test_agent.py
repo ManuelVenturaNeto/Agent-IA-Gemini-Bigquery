@@ -50,7 +50,7 @@ class ResponseAgentGenerateNaturalLanguageTests(unittest.TestCase):
         ):
             response = agent.generate_natural_language(
                 question_text="Show my flights",
-                response_data=[{"id_empresa": 1}],
+                response_data=[{"company_id": 1}],
                 user_email="user@example.com",
                 chat_id="chat-1",
                 question_id="question-1",
@@ -62,7 +62,7 @@ class ResponseAgentGenerateNaturalLanguageTests(unittest.TestCase):
         )
         agent._chain.invoke.assert_called_once()
         payload = agent._chain.invoke.call_args.args[0]
-        self.assertEqual(payload["response_data"], '[{"id_empresa": 1}]')
+        self.assertEqual(payload["response_data"], '[{"company_id": 1}]')
         self.assertEqual(payload["history"], history.messages)
         self.assertEqual(payload["question_text"], "Show my flights")
         self.assertIn("Destaques analiticos", payload["analysis_summary"])

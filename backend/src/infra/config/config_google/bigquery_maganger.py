@@ -1,23 +1,30 @@
 import os
+from pathlib import Path
 from typing import Dict
 
 from dotenv import load_dotenv
 from google.cloud import bigquery
 from google.cloud.bigquery import SchemaField, Table
-
 from src.infra.logging_utils import LoggedComponent
 
 
 class BigQueryManager(LoggedComponent):
+    """Handles BigQuery interactions, including schema retrieval and query execution."""
+
     def __init__(self) -> None:
-        load_dotenv()
+        env_path = Path(__file__).resolve().parents[4] / ".env"
+        load_dotenv(env_path)
         super().__init__()
-        self.project_id = os.getenv("PROJECT")
-        self.project_sa = os.getenv("PROJECT_SA")
+        self.project_id = (
+            os.getenv("PROJECT_ID")
+            or os.getenv("PROJECT")
+            or ""
+        ).strip()
+        self.project_sa = self._resolve_service_account_path(env_path)
 
         if not self.project_id or not self.project_sa:
             self.log_error("Missing GCP environment variables.")
-            raise EnvironmentError("PROJECT or PROJECT_SA not set.")
+            raise EnvironmentError("PROJECT_ID/PROJECT or PROJECT_SA not set.")
 
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.project_sa
         self.bq_client = bigquery.Client(project=self.project_id)
@@ -62,22 +69,33 @@ class BigQueryManager(LoggedComponent):
         question_id: str,
     ) -> list[dict]:
         """
-        Wraps the AI-generated SQL in a secure CTE filter
+        Wrap the AI-generated SQL in a company-scoped access filter.
         """
-        # secure_sql = f"""
-        # WITH query_ia AS (
-        #     {response_sql}
-        # )
-        # SELECT * FROM query_ia
-        # WHERE id_empresa IN (
-        #     SELECT id_empresa FROM `{self.project_id}.test_ia.usuarios`
-        #     WHERE email = @user_email
-        # )
-        # """
-        secure_sql = response_sql
+        secure_sql = f"""
+        WITH scoped_user AS (
+            SELECT company_id
+            FROM `{self.project_id}.test_ia.users`
+            WHERE LOWER(email) = LOWER(@user_email)
+        ),
+        query_ia AS (
+            {response_sql}
+        )
+        SELECT *
+        FROM query_ia
+        WHERE company_id IN (
+            SELECT company_id
+            FROM scoped_user
+        )
+        """
 
         self.log_info(
             "Executing secure BigQuery query.",
+            user_email=user_email,
+            chat_id=chat_id,
+            question_id=question_id,
+        )
+        self.log_debug(
+            f"Wrapped BigQuery SQL: {secure_sql}",
             user_email=user_email,
             chat_id=chat_id,
             question_id=question_id,
@@ -110,3 +128,15 @@ class BigQueryManager(LoggedComponent):
                 question_id=question_id,
             )
             raise
+
+    def _resolve_service_account_path(self, env_path: Path) -> str:
+        """Return an absolute service-account path from PROJECT_SA."""
+        raw_value = os.getenv("PROJECT_SA", "").strip()
+        if not raw_value:
+            return ""
+
+        candidate_path = Path(raw_value)
+        if candidate_path.is_absolute():
+            return str(candidate_path)
+
+        return str((env_path.parent / candidate_path).resolve())

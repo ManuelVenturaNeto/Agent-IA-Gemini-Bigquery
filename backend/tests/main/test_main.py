@@ -16,12 +16,12 @@ class QueryResultValidatorTests(unittest.TestCase):
 
         issue = validator.validate(
             question_text="How much did my travel expenses cost this month?",
-            response_data=[{"id_empresa": 1}],
+            response_data=[{"company_id": 1}],
         )
 
         self.assertEqual(
             issue,
-            "Query returned only id_empresa without any analytical metric or dimension.",
+            "Query returned only company_id without any analytical metric or dimension.",
         )
 
     def test_rejects_overly_granular_summary_result(self) -> None:
@@ -31,12 +31,12 @@ class QueryResultValidatorTests(unittest.TestCase):
         issue = validator.validate(
             question_text="How much did my travel expenses cost this month?",
             response_data=[
-                {"id_empresa": 1, "total": 10},
-                {"id_empresa": 1, "total": 20},
-                {"id_empresa": 1, "total": 30},
-                {"id_empresa": 1, "total": 40},
-                {"id_empresa": 1, "total": 50},
-                {"id_empresa": 1, "total": 60},
+                {"company_id": 1, "total": 10},
+                {"company_id": 1, "total": 20},
+                {"company_id": 1, "total": 30},
+                {"company_id": 1, "total": 40},
+                {"company_id": 1, "total": 50},
+                {"company_id": 1, "total": 60},
             ],
         )
 
@@ -52,12 +52,12 @@ class QueryResultValidatorTests(unittest.TestCase):
         issue = validator.validate(
             question_text="How much did my travel expenses cost by month?",
             response_data=[
-                {"id_empresa": 1, "month": "2026-01", "total": 10},
-                {"id_empresa": 1, "month": "2026-02", "total": 20},
-                {"id_empresa": 1, "month": "2026-03", "total": 30},
-                {"id_empresa": 1, "month": "2026-04", "total": 40},
-                {"id_empresa": 1, "month": "2026-05", "total": 50},
-                {"id_empresa": 1, "month": "2026-06", "total": 60},
+                {"company_id": 1, "month": "2026-01", "total": 10},
+                {"company_id": 1, "month": "2026-02", "total": 20},
+                {"company_id": 1, "month": "2026-03", "total": 30},
+                {"company_id": 1, "month": "2026-04", "total": 40},
+                {"company_id": 1, "month": "2026-05", "total": 50},
+                {"company_id": 1, "month": "2026-06", "total": 60},
             ],
         )
 
@@ -155,13 +155,13 @@ class OrchestrateAgentSecurityTests(unittest.TestCase):
             reason="General analytical question.",
         )
         instances["db"].get_schema.return_value = {
-            "id_empresa": "INTEGER",
+            "company_id": "INTEGER",
             "total": "FLOAT",
         }
         instances["query"].generate_sql.return_value = (
-            "SELECT id_empresa, total FROM test_ia.passagens_aereas"
+            "SELECT company_id, total FROM test_ia.air_tickets"
         )
-        instances["db"].execute_query.return_value = [{"id_empresa": 1, "total": 125.0}]
+        instances["db"].execute_query.return_value = [{"company_id": 1, "total": 125.0}]
         instances["response"].generate_natural_language.return_value = "ok"
 
         result = orchestrator.run_agent(
@@ -191,13 +191,13 @@ class OrchestrateAgentSecurityTests(unittest.TestCase):
             reason="General analytical question.",
         )
         instances["db"].get_schema.return_value = {
-            "id_empresa": "INTEGER",
+            "company_id": "INTEGER",
             "total": "FLOAT",
         }
         instances["query"].generate_sql.return_value = (
-            "SELECT id_empresa, total FROM test_ia.passagens_aereas"
+            "SELECT company_id, total FROM test_ia.air_tickets"
         )
-        instances["db"].execute_query.return_value = [{"id_empresa": 1, "total": 125.0}]
+        instances["db"].execute_query.return_value = [{"company_id": 1, "total": 125.0}]
 
         result = orchestrator.run_agent(
             input_question="How much did my travel expenses cost this month?",
@@ -209,7 +209,7 @@ class OrchestrateAgentSecurityTests(unittest.TestCase):
         )
 
         self.assertEqual(result["status"], "success")
-        self.assertEqual(result["response_sql"], "SELECT id_empresa, total FROM test_ia.passagens_aereas")
+        self.assertEqual(result["response_sql"], "SELECT company_id, total FROM test_ia.air_tickets")
         self.assertEqual(result["response_natural_language"], "")
         instances["response"].generate_natural_language.assert_not_called()
 
@@ -222,15 +222,15 @@ class OrchestrateAgentSecurityTests(unittest.TestCase):
             reason="General analytical question.",
         )
         instances["db"].get_schema.return_value = {
-            "id_empresa": "INTEGER",
+            "company_id": "INTEGER",
             "month": "STRING",
             "total": "FLOAT",
         }
         instances["query"].generate_sql.return_value = (
-            "SELECT id_empresa, month, total FROM test_ia.passagens_aereas"
+            "SELECT company_id, month, total FROM test_ia.air_tickets"
         )
         instances["db"].execute_query.return_value = [
-            {"id_empresa": 1, "month": "2026-01", "total": 125.0}
+            {"company_id": 1, "month": "2026-01", "total": 125.0}
         ]
         instances["graph"].suggest_graphs.return_value = [
             {
@@ -270,17 +270,17 @@ class OrchestrateAgentSecurityTests(unittest.TestCase):
             reason="General analytical question.",
         )
         instances["db"].get_schema.return_value = {
-            "id_empresa": "INTEGER",
+            "company_id": "INTEGER",
             "total": "FLOAT",
         }
         instances["query"].generate_sql.side_effect = [
-            "SELECT id_empresa, FROM test_ia.passagens_aereas",
-            "SELECT id_empresa, total FROM test_ia.passagens_aereas",
+            "SELECT company_id, FROM test_ia.air_tickets",
+            "SELECT company_id, total FROM test_ia.air_tickets",
         ]
         instances["db"].execute_query.side_effect = [
             RuntimeError("Syntax error near FROM"),
             RuntimeError("Syntax error near FROM"),
-            [{"id_empresa": 1, "total": 125.0}],
+            [{"company_id": 1, "total": 125.0}],
         ]
         instances["response"].generate_natural_language.return_value = "ok"
 
@@ -299,7 +299,7 @@ class OrchestrateAgentSecurityTests(unittest.TestCase):
         instances["query"].generate_sql.assert_has_calls(
             [
                 call(
-                    tables_and_schemas={"test_ia.passagens_aereas": {"id_empresa": "INTEGER", "total": "FLOAT"}},
+                    tables_and_schemas={"test_ia.air_tickets": {"company_id": "INTEGER", "total": "FLOAT"}},
                     question_text="How much did my travel expenses cost this month?",
                     user_email="user@example.com",
                     chat_id="chat-1",
@@ -308,13 +308,13 @@ class OrchestrateAgentSecurityTests(unittest.TestCase):
                     previous_sql=None,
                 ),
                 call(
-                    tables_and_schemas={"test_ia.passagens_aereas": {"id_empresa": "INTEGER", "total": "FLOAT"}},
+                    tables_and_schemas={"test_ia.air_tickets": {"company_id": "INTEGER", "total": "FLOAT"}},
                     question_text="How much did my travel expenses cost this month?",
                     user_email="user@example.com",
                     chat_id="chat-1",
                     question_id="question-1",
                     retry_reason="Database execution error: Syntax error near FROM",
-                    previous_sql="SELECT id_empresa, FROM test_ia.passagens_aereas",
+                    previous_sql="SELECT company_id, FROM test_ia.air_tickets",
                 ),
             ]
         )
@@ -328,16 +328,16 @@ class OrchestrateAgentSecurityTests(unittest.TestCase):
             reason="General analytical question.",
         )
         instances["db"].get_schema.return_value = {
-            "id_empresa": "INTEGER",
+            "company_id": "INTEGER",
             "total": "FLOAT",
         }
         instances["query"].generate_sql.side_effect = [
-            "SELECT id_empresa FROM test_ia.passagens_aereas",
-            "SELECT id_empresa, total FROM test_ia.passagens_aereas",
+            "SELECT company_id FROM test_ia.air_tickets",
+            "SELECT company_id, total FROM test_ia.air_tickets",
         ]
         instances["db"].execute_query.side_effect = [
-            [{"id_empresa": 1}],
-            [{"id_empresa": 1, "total": 125.0}],
+            [{"company_id": 1}],
+            [{"company_id": 1, "total": 125.0}],
         ]
         instances["response"].generate_natural_language.return_value = "ok"
 
@@ -356,7 +356,7 @@ class OrchestrateAgentSecurityTests(unittest.TestCase):
         instances["query"].generate_sql.assert_has_calls(
             [
                 call(
-                    tables_and_schemas={"test_ia.passagens_aereas": {"id_empresa": "INTEGER", "total": "FLOAT"}},
+                    tables_and_schemas={"test_ia.air_tickets": {"company_id": "INTEGER", "total": "FLOAT"}},
                     question_text="How much did my travel expenses cost this month?",
                     user_email="user@example.com",
                     chat_id="chat-1",
@@ -365,16 +365,16 @@ class OrchestrateAgentSecurityTests(unittest.TestCase):
                     previous_sql=None,
                 ),
                 call(
-                    tables_and_schemas={"test_ia.passagens_aereas": {"id_empresa": "INTEGER", "total": "FLOAT"}},
+                    tables_and_schemas={"test_ia.air_tickets": {"company_id": "INTEGER", "total": "FLOAT"}},
                     question_text="How much did my travel expenses cost this month?",
                     user_email="user@example.com",
                     chat_id="chat-1",
                     question_id="question-1",
                     retry_reason=(
-                        "Query returned only id_empresa without any analytical metric "
+                        "Query returned only company_id without any analytical metric "
                         "or dimension."
                     ),
-                    previous_sql="SELECT id_empresa FROM test_ia.passagens_aereas",
+                    previous_sql="SELECT company_id FROM test_ia.air_tickets",
                 ),
             ]
         )

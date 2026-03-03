@@ -25,8 +25,8 @@ class AgentRoutesTests(unittest.TestCase):
         orchestrator = Mock()
         orchestrator.run_agent.return_value = {
             "status": "success",
-            "response_data": [{"id_empresa": 1}],
-            "response_sql": "SELECT id_empresa FROM test",
+            "response_data": [{"company_id": 1}],
+            "response_sql": "SELECT company_id FROM test",
             "response_natural_language": "formatted answer",
             "response_types": ["TEXT", "SQL"],
             "graph_suggestions": [],
@@ -46,7 +46,7 @@ class AgentRoutesTests(unittest.TestCase):
         ), patch.object(
             agent_routes.chat_store_manager,
             "save_message_data",
-            return_value="/storage/chat-1/question-1/response_data.json",
+            return_value="/v1/storage/data/chat-1/question-1",
         ), patch.object(
             agent_routes.chat_store_manager,
             "upsert_mock_message",
@@ -57,7 +57,7 @@ class AgentRoutesTests(unittest.TestCase):
         self.assertEqual(response["user"], "user@example.com")
         self.assertEqual(
             response["response"]["data_path"],
-            "/storage/chat-1/question-1/response_data.json",
+            "/v1/storage/data/chat-1/question-1",
         )
 
     def test_ask_agent_returns_http_400_for_invalid_input(self) -> None:
@@ -137,7 +137,7 @@ class AgentRoutesTests(unittest.TestCase):
         ), patch.object(
             agent_routes.graph_agent,
             "render_graph",
-            return_value="/storage/chat-1/graphics/question-1/graph.png",
+            return_value="/v1/storage/graph/chat-1/question-1",
         ), patch.object(
             agent_routes.chat_store_manager,
             "update_message_metadata",
@@ -150,7 +150,7 @@ class AgentRoutesTests(unittest.TestCase):
         self.assertEqual(response["status"], "success")
         self.assertEqual(
             response["graph_path"],
-            "/storage/chat-1/graphics/question-1/graph.png",
+            "/v1/storage/graph/chat-1/question-1",
         )
 
     def test_generate_graph_returns_http_400_when_saved_data_is_missing(self) -> None:
