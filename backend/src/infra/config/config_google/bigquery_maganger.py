@@ -1,10 +1,9 @@
 import os
-from pathlib import Path
 from typing import Dict
 
-from dotenv import load_dotenv
 from google.cloud import bigquery
 from google.cloud.bigquery import SchemaField, Table
+from src.infra.config import settings
 from src.infra.logging_utils import LoggedComponent
 
 
@@ -12,15 +11,9 @@ class BigQueryManager(LoggedComponent):
     """Handles BigQuery interactions, including schema retrieval and query execution."""
 
     def __init__(self) -> None:
-        env_path = Path(__file__).resolve().parents[4] / ".env"
-        load_dotenv(env_path)
         super().__init__()
-        self.project_id = (
-            os.getenv("PROJECT_ID")
-            or os.getenv("PROJECT")
-            or ""
-        ).strip()
-        self.project_sa = self._resolve_service_account_path(env_path)
+        self.project_id = settings.project_id
+        self.project_sa = settings.project_sa_path
 
         if not self.project_id or not self.project_sa:
             self.log_error("Missing GCP environment variables.")
@@ -128,15 +121,3 @@ class BigQueryManager(LoggedComponent):
                 question_id=question_id,
             )
             raise
-
-    def _resolve_service_account_path(self, env_path: Path) -> str:
-        """Return an absolute service-account path from PROJECT_SA."""
-        raw_value = os.getenv("PROJECT_SA", "").strip()
-        if not raw_value:
-            return ""
-
-        candidate_path = Path(raw_value)
-        if candidate_path.is_absolute():
-            return str(candidate_path)
-
-        return str((env_path.parent / candidate_path).resolve())

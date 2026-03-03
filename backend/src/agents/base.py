@@ -1,15 +1,13 @@
 import os
 import re
 from typing import Dict
-from dotenv import load_dotenv
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_google_genai import ChatGoogleGenerativeAI
+from src.infra.config import settings
 from src.infra.logging_utils import LoggedComponent
 
 
 SESSION_STORE: Dict[str, ChatMessageHistory] = {}
-
-load_dotenv()
 
 
 def get_session_history(session_id: str) -> ChatMessageHistory:
@@ -21,12 +19,8 @@ def get_session_history(session_id: str) -> ChatMessageHistory:
 class BaseAgent(LoggedComponent):
     def __init__(self) -> None:
         super().__init__()
-        self.project_id = os.getenv("PROJECT")
-        self.gemini_api_key = (
-            os.getenv("GOOGLE_API_KEY")
-            or os.getenv("GEMINI_API_KEY")
-            or os.getenv("GEN_IA_KEY")
-        )
+        self.project_id = settings.project_id
+        self.gemini_api_key = settings.gemini_api_key
 
         if not self.gemini_api_key:
             self.log_error("Missing Gemini API key configuration.")

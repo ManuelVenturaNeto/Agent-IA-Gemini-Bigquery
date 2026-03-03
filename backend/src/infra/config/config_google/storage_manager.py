@@ -1,10 +1,8 @@
 import json
 import os
-from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv
-
+from src.infra.config import settings
 from src.infra.logging_utils import LoggedComponent
 
 try:
@@ -22,12 +20,10 @@ class StorageManager(LoggedComponent):
     """Handle persisted response data and graphs in Google Cloud Storage."""
 
     def __init__(self, bucket_name: str = DEFAULT_STORAGE_BUCKET) -> None:
-        self._env_path = self._resolve_env_path()
-        load_dotenv(self._env_path)
         super().__init__()
-        self.bucket_name = os.getenv("STORAGE_BUCKET", bucket_name).strip()
-        self.project_id = self._resolve_project_id()
-        self.project_sa = self._resolve_service_account_path()
+        self.bucket_name = settings.storage_bucket(bucket_name)
+        self.project_id = settings.project_id
+        self.project_sa = settings.project_sa_path
         self._bucket = None
         self._configuration_error = ""
 
@@ -202,38 +198,6 @@ class StorageManager(LoggedComponent):
             raise RuntimeError(f"Cloud storage is not configured: {detail}")
 
         return self._bucket
-
-    def _resolve_project_id(self) -> str:
-        """Read the configured GCP project id from common environment names."""
-        candidate_keys = (
-            "PROJECT_ID",
-            "PROJECT",
-            "GOOGLE_CLOUD_PROJECT",
-            "GCP_PROJECT_ID",
-        )
-
-        for key in candidate_keys:
-            value = os.getenv(key, "").strip()
-            if value:
-                return value
-
-        return ""
-
-    def _resolve_env_path(self) -> Path:
-        """Return the backend .env path so loading does not depend on cwd."""
-        return Path(__file__).resolve().parents[4] / ".env"
-
-    def _resolve_service_account_path(self) -> str:
-        """Return an absolute service-account path from PROJECT_SA."""
-        raw_value = os.getenv("PROJECT_SA", "").strip()
-        if not raw_value:
-            return ""
-
-        candidate_path = Path(raw_value)
-        if candidate_path.is_absolute():
-            return str(candidate_path)
-
-        return str((self._env_path.parent / candidate_path).resolve())
 
     def _normalize_email(self, value: str) -> str:
         normalized = str(value or "").strip().lower().replace("/", "_")

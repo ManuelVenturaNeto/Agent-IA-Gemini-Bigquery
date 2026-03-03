@@ -1,14 +1,11 @@
-import os
 from secrets import token_urlsafe
 from typing import Dict
 from typing import Optional
-from dotenv import load_dotenv
 from fastapi import HTTPException
 from fastapi import status
+from src.infra.config import settings
 from src.infra.logging_utils import LoggedComponent
 
-
-load_dotenv()
 
 _active_tokens: Dict[str, Dict[str, object]] = {}
 
@@ -19,8 +16,8 @@ class AuthService(LoggedComponent):
     def __init__(self) -> None:
         """Load login settings and initialize the auth logger."""
         super().__init__()
-        self._login_password = os.getenv("APP_LOGIN_PASSWORD", "demo_password")
-        self._privileged_log_emails = self._load_privileged_log_emails()
+        self._login_password = settings.app_login_password
+        self._privileged_log_emails = settings.privileged_log_viewer_emails
 
     def login_user(self, email: str, password: str) -> Dict[str, object]:
         """Authenticate an email and return the bearer token payload."""
@@ -81,21 +78,6 @@ class AuthService(LoggedComponent):
         if should_log_success:
             self.log_info("Token validated.", user_email=str(user["email"]))
         return user
-
-    def _load_privileged_log_emails(self) -> set[str]:
-        """Read the privileged log-viewer emails from the environment."""
-        raw_value = os.getenv(
-            "PRIVILEGED_LOG_VIEWER_EMAILS",
-            "user@example.com",
-        )
-        email_list = set()
-
-        for item in raw_value.split(","):
-            normalized_email = item.strip().lower()
-            if normalized_email:
-                email_list.add(normalized_email)
-
-        return email_list
 
 
 auth_service = AuthService()
