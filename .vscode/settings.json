@@ -1,0 +1,14 @@
+{
+    "postman.settings.dotenv-detection-notification-visibility": false,
+    "files.exclude": {
+        "**/__pycache__": true,
+    },
+    "python.defaultInterpreterPath": "venv\\Scripts\\python.exe",
+    "python.formatting.provider": "none",
+    "editor.formatOnSave": true,
+    "ruff.enable": true,
+    "ruff.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit"
+    },
+}
